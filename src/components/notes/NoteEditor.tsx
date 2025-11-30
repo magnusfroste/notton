@@ -1,17 +1,29 @@
+import { useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Placeholder from "@tiptap/extension-placeholder";
+import Underline from "@tiptap/extension-underline";
+import Link from "@tiptap/extension-link";
+import TaskList from "@tiptap/extension-task-list";
+import TaskItem from "@tiptap/extension-task-item";
 import {
   Bold,
   Italic,
-  Underline,
+  Underline as UnderlineIcon,
   List,
   ListOrdered,
   CheckSquare,
   Code,
-  Link,
+  Link as LinkIcon,
   Sparkles,
   MoreHorizontal,
   Share,
   Trash2,
+  Heading1,
+  Heading2,
+  Quote,
+  Minus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Note } from "@/pages/Dashboard";
@@ -22,20 +34,44 @@ interface NoteEditorProps {
   onOpenAIPanel: () => void;
 }
 
-const formatActions = [
-  { icon: Bold, label: "Bold", shortcut: "⌘B" },
-  { icon: Italic, label: "Italic", shortcut: "⌘I" },
-  { icon: Underline, label: "Underline", shortcut: "⌘U" },
-  { icon: null, label: "divider" },
-  { icon: List, label: "Bullet List" },
-  { icon: ListOrdered, label: "Numbered List" },
-  { icon: CheckSquare, label: "Checklist" },
-  { icon: null, label: "divider" },
-  { icon: Code, label: "Code Block" },
-  { icon: Link, label: "Add Link" },
-];
-
 export function NoteEditor({ note, onOpenAIPanel }: NoteEditorProps) {
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2],
+        },
+      }),
+      Placeholder.configure({
+        placeholder: "Start writing...",
+      }),
+      Underline,
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: "text-primary underline cursor-pointer",
+        },
+      }),
+      TaskList,
+      TaskItem.configure({
+        nested: true,
+      }),
+    ],
+    content: note?.content || "",
+    editorProps: {
+      attributes: {
+        class:
+          "prose prose-invert prose-sm max-w-none focus:outline-none min-h-[calc(100vh-280px)]",
+      },
+    },
+  });
+
+  useEffect(() => {
+    if (editor && note) {
+      editor.commands.setContent(note.content || "");
+    }
+  }, [note?.id, editor]);
+
   if (!note) {
     return (
       <div className="flex-1 flex items-center justify-center bg-background">
@@ -48,6 +84,91 @@ export function NoteEditor({ note, onOpenAIPanel }: NoteEditorProps) {
       </div>
     );
   }
+
+  const addLink = () => {
+    const url = window.prompt("Enter URL:");
+    if (url && editor) {
+      editor.chain().focus().setLink({ href: url }).run();
+    }
+  };
+
+  const formatActions = [
+    {
+      icon: Bold,
+      label: "Bold",
+      action: () => editor?.chain().focus().toggleBold().run(),
+      isActive: editor?.isActive("bold"),
+    },
+    {
+      icon: Italic,
+      label: "Italic",
+      action: () => editor?.chain().focus().toggleItalic().run(),
+      isActive: editor?.isActive("italic"),
+    },
+    {
+      icon: UnderlineIcon,
+      label: "Underline",
+      action: () => editor?.chain().focus().toggleUnderline().run(),
+      isActive: editor?.isActive("underline"),
+    },
+    { icon: null, label: "divider" },
+    {
+      icon: Heading1,
+      label: "Heading 1",
+      action: () => editor?.chain().focus().toggleHeading({ level: 1 }).run(),
+      isActive: editor?.isActive("heading", { level: 1 }),
+    },
+    {
+      icon: Heading2,
+      label: "Heading 2",
+      action: () => editor?.chain().focus().toggleHeading({ level: 2 }).run(),
+      isActive: editor?.isActive("heading", { level: 2 }),
+    },
+    { icon: null, label: "divider" },
+    {
+      icon: List,
+      label: "Bullet List",
+      action: () => editor?.chain().focus().toggleBulletList().run(),
+      isActive: editor?.isActive("bulletList"),
+    },
+    {
+      icon: ListOrdered,
+      label: "Numbered List",
+      action: () => editor?.chain().focus().toggleOrderedList().run(),
+      isActive: editor?.isActive("orderedList"),
+    },
+    {
+      icon: CheckSquare,
+      label: "Checklist",
+      action: () => editor?.chain().focus().toggleTaskList().run(),
+      isActive: editor?.isActive("taskList"),
+    },
+    { icon: null, label: "divider" },
+    {
+      icon: Quote,
+      label: "Quote",
+      action: () => editor?.chain().focus().toggleBlockquote().run(),
+      isActive: editor?.isActive("blockquote"),
+    },
+    {
+      icon: Code,
+      label: "Code Block",
+      action: () => editor?.chain().focus().toggleCodeBlock().run(),
+      isActive: editor?.isActive("codeBlock"),
+    },
+    {
+      icon: Minus,
+      label: "Horizontal Rule",
+      action: () => editor?.chain().focus().setHorizontalRule().run(),
+      isActive: false,
+    },
+    {
+      icon: LinkIcon,
+      label: "Add Link",
+      action: addLink,
+      isActive: editor?.isActive("link"),
+    },
+  ];
 
   return (
     <div className="flex-1 flex flex-col bg-background min-w-0">
@@ -66,7 +187,11 @@ export function NoteEditor({ note, onOpenAIPanel }: NoteEditorProps) {
                 key={action.label}
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+                onClick={action.action}
+                className={cn(
+                  "h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted",
+                  action.isActive && "bg-muted text-foreground"
+                )}
                 title={action.label}
               >
                 <action.icon className="h-4 w-4" />
@@ -132,6 +257,7 @@ export function NoteEditor({ note, onOpenAIPanel }: NoteEditorProps) {
               "placeholder:text-muted-foreground/40"
             )}
             placeholder="Note title"
+            readOnly
           />
 
           {/* Metadata */}
@@ -141,16 +267,8 @@ export function NoteEditor({ note, onOpenAIPanel }: NoteEditorProps) {
             </span>
           </div>
 
-          {/* Note Content */}
-          <textarea
-            value={note.content}
-            className={cn(
-              "w-full min-h-[calc(100vh-280px)] text-base leading-relaxed",
-              "text-foreground/90 bg-transparent border-0 outline-none resize-none",
-              "placeholder:text-muted-foreground/40"
-            )}
-            placeholder="Start writing..."
-          />
+          {/* TipTap Editor */}
+          <EditorContent editor={editor} className="tiptap-editor" />
         </div>
       </div>
     </div>
