@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { FileText, Sparkles } from "lucide-react";
+import { FileText, Sparkles, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -184,6 +184,17 @@ const Auth = () => {
               </span>
             </button>
           </div>
+        </div>
+
+        {/* Back to home link */}
+        <div className="mt-6 text-center">
+          <Link 
+            to="/" 
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to home
+          </Link>
         </div>
       </div>
     </div>
