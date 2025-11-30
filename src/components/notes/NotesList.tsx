@@ -1,8 +1,10 @@
+import { useRef } from "react";
 import { cn } from "@/lib/utils";
-import { Search, Plus, SortDesc } from "lucide-react";
+import { Search, Plus, SortDesc, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Note } from "@/hooks/useNotes";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 interface NotesListProps {
   notes: Note[];
@@ -11,6 +13,7 @@ interface NotesListProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onCreateNote: () => void;
+  onImportNote?: (title: string, content: string) => Promise<Note | null>;
   isTrashView?: boolean;
 }
 
@@ -21,8 +24,44 @@ export function NotesList({
   searchQuery,
   onSearchChange,
   onCreateNote,
+  onImportNote,
   isTrashView,
 }: NotesListProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !onImportNote) return;
+
+    let imported = 0;
+    for (const file of Array.from(files)) {
+      if (!file.name.endsWith(".md")) {
+        toast.error(`Skipped ${file.name}: Not a markdown file`);
+        continue;
+      }
+
+      try {
+        const content = await file.text();
+        // Extract title from filename (without .md extension)
+        const title = file.name.replace(/\.md$/, "");
+        await onImportNote(title, content);
+        imported++;
+      } catch (error) {
+        toast.error(`Failed to import ${file.name}`);
+      }
+    }
+
+    if (imported > 0) {
+      toast.success(`Imported ${imported} note${imported > 1 ? "s" : ""}`);
+    }
+
+    // Reset input
+    e.target.value = "";
+  };
   return (
     <div className="flex flex-col w-72 h-full border-r border-border bg-card">
       {/* Header with Search */}
@@ -60,14 +99,33 @@ export function NotesList({
               <SortDesc className="h-3.5 w-3.5" />
             </Button>
             {!isTrashView && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10"
-                onClick={onCreateNote}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
+              <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".md"
+                  multiple
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                  onClick={handleImportClick}
+                  title="Import markdown files"
+                >
+                  <Upload className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10"
+                  onClick={onCreateNote}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </>
             )}
           </div>
         </div>

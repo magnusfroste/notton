@@ -20,7 +20,7 @@ export interface Folder {
 const Dashboard = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
-  const { notes, folders: userFolders, loading: notesLoading, createNote, updateNote, deleteNote, restoreNote, createFolder, deleteFolder } = useNotes();
+  const { notes, folders: userFolders, loading: notesLoading, createNote, importNote, updateNote, deleteNote, restoreNote, createFolder, deleteFolder } = useNotes();
   
   const [selectedFolder, setSelectedFolder] = useState<string>("all");
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
@@ -112,6 +112,15 @@ const Dashboard = () => {
     }
   };
 
+  const handleImportNote = async (title: string, content: string) => {
+    const folderId = selectedFolder !== "all" && selectedFolder !== "trash" ? selectedFolder : null;
+    const newNote = await importNote(title, content, folderId);
+    if (newNote) {
+      setSelectedNote(newNote);
+    }
+    return newNote;
+  };
+
   const handleUpdateNote = async (id: string, updates: Partial<Pick<Note, "title" | "content" | "folder_id">>) => {
     await updateNote(id, updates);
     if (selectedNote?.id === id) {
@@ -174,6 +183,7 @@ const Dashboard = () => {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onCreateNote={handleCreateNote}
+        onImportNote={handleImportNote}
         isTrashView={selectedFolder === "trash"}
       />
 
