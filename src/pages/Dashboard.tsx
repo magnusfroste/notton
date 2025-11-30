@@ -35,6 +35,20 @@ const Dashboard = () => {
     }
   }, [user, authLoading, navigate]);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd+N or Ctrl+N for new note
+      if ((e.metaKey || e.ctrlKey) && e.key === "n") {
+        e.preventDefault();
+        handleCreateNote();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedFolder]);
+
   // Build folder list with counts
   const folders = useMemo(() => {
     const activeNotes = notes.filter((n) => !n.is_deleted);
