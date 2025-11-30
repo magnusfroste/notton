@@ -101,6 +101,29 @@ export function useNotes() {
     return data;
   };
 
+  const importNote = async (title: string, content: string, folderId?: string | null) => {
+    if (!user) return null;
+
+    const { data, error } = await supabase
+      .from("notes")
+      .insert({
+        user_id: user.id,
+        folder_id: folderId || null,
+        title,
+        content,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error(error);
+      return null;
+    }
+
+    setNotes((prev) => [data, ...prev]);
+    return data;
+  };
+
   const updateNote = async (id: string, updates: Partial<Pick<Note, "title" | "content" | "folder_id" | "is_deleted" | "deleted_at">>) => {
     const { error } = await supabase
       .from("notes")
@@ -207,6 +230,7 @@ export function useNotes() {
     folders,
     loading,
     createNote,
+    importNote,
     updateNote,
     deleteNote,
     restoreNote,
