@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { FileText, Sparkles } from "lucide-react";
+import heroIllustration from "@/assets/hero-illustration.png";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -23,8 +24,8 @@ const Index = () => {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
-      <div className="text-center max-w-md">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-12">
+      <div className="text-center max-w-2xl">
         <div className="flex items-center justify-center gap-3 mb-6">
           <FileText className="h-12 w-12 text-primary" />
           <h1 className="text-4xl font-bold text-foreground">Tahoe Notes</h1>
@@ -37,6 +38,14 @@ const Index = () => {
         <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground/70 mb-8">
           <Sparkles className="h-4 w-4 text-[hsl(var(--ai-accent))]" />
           <span>Powered by AI</span>
+        </div>
+
+        <div className="mb-8 rounded-xl overflow-hidden shadow-2xl">
+          <img 
+            src={heroIllustration} 
+            alt="Tahoe Notes - AI-powered note-taking illustration" 
+            className="w-full h-auto"
+          />
         </div>
 
         <Button 
