@@ -7,11 +7,10 @@ import {
   FileText,
   Wand2,
   ListChecks,
-  Search,
   Lightbulb,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Note } from "@/pages/Dashboard";
+import { Note } from "@/hooks/useNotes";
 
 interface AIChatPanelProps {
   isOpen: boolean;

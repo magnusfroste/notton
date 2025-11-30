@@ -1,17 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { FolderSidebar } from "@/components/notes/FolderSidebar";
 import { NotesList } from "@/components/notes/NotesList";
 import { NoteEditor } from "@/components/notes/NoteEditor";
 import { AIChatPanel } from "@/components/notes/AIChatPanel";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNotes, Note } from "@/hooks/useNotes";
 
-export interface Note {
-  id: string;
-  title: string;
-  content: string;
-  folderId: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+export type { Note } from "@/hooks/useNotes";
 
 export interface Folder {
   id: string;
@@ -21,75 +17,133 @@ export interface Folder {
   isSystem?: boolean;
 }
 
-const mockFolders: Folder[] = [
-  { id: "all", name: "All Notes", icon: "FileText", count: 12, isSystem: true },
-  { id: "recent", name: "Recently Viewed", icon: "Clock", count: 5, isSystem: true },
-  { id: "personal", name: "Personal", icon: "User", count: 4 },
-  { id: "work", name: "Work", icon: "Briefcase", count: 6 },
-  { id: "ideas", name: "Ideas", icon: "Lightbulb", count: 2 },
-  { id: "trash", name: "Recently Deleted", icon: "Trash2", count: 1, isSystem: true },
-];
-
-const mockNotes: Note[] = [
-  {
-    id: "1",
-    title: "Project Roadmap 2025",
-    content: "Planning the next quarter milestones and deliverables...",
-    folderId: "work",
-    createdAt: new Date("2024-11-28"),
-    updatedAt: new Date("2024-11-30"),
-  },
-  {
-    id: "2",
-    title: "Meeting Notes - Design Review",
-    content: "Discussed the new UI components and design system updates...",
-    folderId: "work",
-    createdAt: new Date("2024-11-29"),
-    updatedAt: new Date("2024-11-29"),
-  },
-  {
-    id: "3",
-    title: "Weekend Trip Ideas",
-    content: "Looking at destinations for the upcoming long weekend...",
-    folderId: "personal",
-    createdAt: new Date("2024-11-25"),
-    updatedAt: new Date("2024-11-27"),
-  },
-  {
-    id: "4",
-    title: "App Feature Brainstorm",
-    content: "New ideas for improving user engagement and retention...",
-    folderId: "ideas",
-    createdAt: new Date("2024-11-20"),
-    updatedAt: new Date("2024-11-30"),
-  },
-];
-
 const Dashboard = () => {
+  const { user, loading: authLoading, signOut } = useAuth();
+  const navigate = useNavigate();
+  const { notes, folders: userFolders, loading: notesLoading, createNote, updateNote, deleteNote, restoreNote, createFolder, deleteFolder } = useNotes();
+  
   const [selectedFolder, setSelectedFolder] = useState<string>("all");
-  const [selectedNote, setSelectedNote] = useState<Note | null>(mockNotes[0]);
+  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  const filteredNotes = mockNotes.filter((note) => {
-    const matchesFolder = selectedFolder === "all" || note.folderId === selectedFolder;
-    const matchesSearch =
-      searchQuery === "" ||
-      note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      note.content.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesFolder && matchesSearch;
-  });
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/auth");
+    }
+  }, [user, authLoading, navigate]);
+
+  // Build folder list with counts
+  const folders = useMemo(() => {
+    const activeNotes = notes.filter((n) => !n.is_deleted);
+    const deletedNotes = notes.filter((n) => n.is_deleted);
+
+    const systemFolders: Folder[] = [
+      { id: "all", name: "All Notes", icon: "FileText", count: activeNotes.length, isSystem: true },
+      { id: "trash", name: "Recently Deleted", icon: "Trash2", count: deletedNotes.length, isSystem: true },
+    ];
+
+    const userFoldersMapped: Folder[] = userFolders.map((f) => ({
+      id: f.id,
+      name: f.name,
+      icon: f.icon,
+      count: activeNotes.filter((n) => n.folder_id === f.id).length,
+    }));
+
+    return [...systemFolders, ...userFoldersMapped];
+  }, [notes, userFolders]);
+
+  // Filter notes based on selected folder and search
+  const filteredNotes = useMemo(() => {
+    let filtered = notes;
+
+    // Filter by folder
+    if (selectedFolder === "all") {
+      filtered = filtered.filter((n) => !n.is_deleted);
+    } else if (selectedFolder === "trash") {
+      filtered = filtered.filter((n) => n.is_deleted);
+    } else {
+      filtered = filtered.filter((n) => n.folder_id === selectedFolder && !n.is_deleted);
+    }
+
+    // Filter by search
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (n) =>
+          n.title.toLowerCase().includes(query) ||
+          n.content.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  }, [notes, selectedFolder, searchQuery]);
+
+  // Auto-select first note when filtered list changes
+  useEffect(() => {
+    if (filteredNotes.length > 0 && !filteredNotes.find((n) => n.id === selectedNote?.id)) {
+      setSelectedNote(filteredNotes[0]);
+    } else if (filteredNotes.length === 0) {
+      setSelectedNote(null);
+    }
+  }, [filteredNotes]);
+
+  const handleCreateNote = async () => {
+    const folderId = selectedFolder !== "all" && selectedFolder !== "trash" ? selectedFolder : null;
+    const newNote = await createNote(folderId);
+    if (newNote) {
+      setSelectedNote(newNote);
+    }
+  };
+
+  const handleUpdateNote = async (id: string, updates: Partial<Pick<Note, "title" | "content" | "folder_id">>) => {
+    await updateNote(id, updates);
+    if (selectedNote?.id === id) {
+      setSelectedNote((prev) => (prev ? { ...prev, ...updates } : null));
+    }
+  };
+
+  const handleDeleteNote = async () => {
+    if (!selectedNote) return;
+    
+    if (selectedNote.is_deleted) {
+      await deleteNote(selectedNote.id, true);
+    } else {
+      await deleteNote(selectedNote.id);
+    }
+  };
+
+  const handleRestoreNote = async () => {
+    if (!selectedNote) return;
+    await restoreNote(selectedNote.id);
+  };
+
+  if (authLoading || notesLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background dark">
+        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="flex h-screen w-full bg-background dark">
       {/* Left Sidebar - Folders */}
       <FolderSidebar
-        folders={mockFolders}
+        folders={folders}
         selectedFolder={selectedFolder}
         onSelectFolder={setSelectedFolder}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        onCreateFolder={createFolder}
+        onDeleteFolder={deleteFolder}
+        onSignOut={signOut}
       />
 
       {/* Center Column - Notes List */}
@@ -99,12 +153,18 @@ const Dashboard = () => {
         onSelectNote={setSelectedNote}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        onCreateNote={handleCreateNote}
+        isTrashView={selectedFolder === "trash"}
       />
 
       {/* Right Column - Note Editor */}
       <NoteEditor
         note={selectedNote}
         onOpenAIPanel={() => setIsAIPanelOpen(true)}
+        onUpdateNote={handleUpdateNote}
+        onDeleteNote={handleDeleteNote}
+        onRestoreNote={handleRestoreNote}
+        isTrashView={selectedFolder === "trash"}
       />
 
       {/* AI Chat Panel - Slide-out */}
