@@ -120,6 +120,12 @@ const Dashboard = () => {
     await restoreNote(selectedNote.id);
   };
 
+  const handleApplyAIContent = (content: string) => {
+    if (selectedNote) {
+      handleUpdateNote(selectedNote.id, { content });
+    }
+  };
+
   if (authLoading || notesLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background dark">
@@ -172,6 +178,7 @@ const Dashboard = () => {
         isOpen={isAIPanelOpen}
         onClose={() => setIsAIPanelOpen(false)}
         note={selectedNote}
+        onApplyContent={handleApplyAIContent}
       />
     </div>
   );
