@@ -131,3 +131,92 @@
     background-color: hsl(var(--muted-foreground));
   }
 }
+
+/* TipTap Editor Styles */
+.tiptap-editor .ProseMirror {
+  @apply outline-none text-foreground/90 leading-relaxed;
+}
+
+.tiptap-editor .ProseMirror p {
+  @apply my-3;
+}
+
+.tiptap-editor .ProseMirror h1 {
+  @apply text-2xl font-bold mt-6 mb-3 text-foreground;
+}
+
+.tiptap-editor .ProseMirror h2 {
+  @apply text-xl font-semibold mt-5 mb-2 text-foreground;
+}
+
+.tiptap-editor .ProseMirror ul,
+.tiptap-editor .ProseMirror ol {
+  @apply pl-6 my-3;
+}
+
+.tiptap-editor .ProseMirror ul {
+  @apply list-disc;
+}
+
+.tiptap-editor .ProseMirror ol {
+  @apply list-decimal;
+}
+
+.tiptap-editor .ProseMirror li {
+  @apply my-1;
+}
+
+.tiptap-editor .ProseMirror blockquote {
+  @apply border-l-4 border-muted pl-4 italic text-muted-foreground my-4;
+}
+
+.tiptap-editor .ProseMirror code {
+  @apply bg-muted px-1.5 py-0.5 rounded text-sm font-mono;
+}
+
+.tiptap-editor .ProseMirror pre {
+  @apply bg-muted rounded-lg p-4 my-4 overflow-x-auto;
+}
+
+.tiptap-editor .ProseMirror pre code {
+  @apply bg-transparent p-0;
+}
+
+.tiptap-editor .ProseMirror hr {
+  @apply border-border my-6;
+}
+
+.tiptap-editor .ProseMirror a {
+  @apply text-primary underline cursor-pointer;
+}
+
+/* Task List Styles */
+.tiptap-editor .ProseMirror ul[data-type="taskList"] {
+  @apply list-none pl-0;
+}
+
+.tiptap-editor .ProseMirror ul[data-type="taskList"] li {
+  @apply flex items-start gap-2;
+}
+
+.tiptap-editor .ProseMirror ul[data-type="taskList"] li > label {
+  @apply flex items-center;
+}
+
+.tiptap-editor .ProseMirror ul[data-type="taskList"] li > label input[type="checkbox"] {
+  @apply w-4 h-4 rounded border-muted-foreground accent-primary cursor-pointer;
+}
+
+.tiptap-editor .ProseMirror ul[data-type="taskList"] li > div {
+  @apply flex-1;
+}
+
+.tiptap-editor .ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div {
+  @apply line-through text-muted-foreground;
+}
+
+/* Placeholder */
+.tiptap-editor .ProseMirror p.is-editor-empty:first-child::before {
+  @apply text-muted-foreground/40 float-left h-0 pointer-events-none;
+  content: attr(data-placeholder);
+}
