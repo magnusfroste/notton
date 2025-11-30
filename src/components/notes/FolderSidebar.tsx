@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   FileText,
@@ -9,10 +10,26 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
-  Settings,
+  LogOut,
+  Folder,
+  MoreHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Folder } from "@/pages/Dashboard";
+import { Folder as FolderType } from "@/pages/Dashboard";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   FileText,
@@ -21,14 +38,18 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Briefcase,
   Lightbulb,
   Trash2,
+  Folder,
 };
 
 interface FolderSidebarProps {
-  folders: Folder[];
+  folders: FolderType[];
   selectedFolder: string;
   onSelectFolder: (id: string) => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  onCreateFolder: (name: string, icon?: string) => Promise<any>;
+  onDeleteFolder: (id: string) => Promise<boolean>;
+  onSignOut: () => Promise<void>;
 }
 
 export function FolderSidebar({
@@ -37,10 +58,24 @@ export function FolderSidebar({
   onSelectFolder,
   isCollapsed,
   onToggleCollapse,
+  onCreateFolder,
+  onDeleteFolder,
+  onSignOut,
 }: FolderSidebarProps) {
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+
   const systemFolders = folders.filter((f) => f.isSystem && f.id !== "trash");
   const userFolders = folders.filter((f) => !f.isSystem);
   const trashFolder = folders.find((f) => f.id === "trash");
+
+  const handleCreateFolder = async () => {
+    if (newFolderName.trim()) {
+      await onCreateFolder(newFolderName.trim());
+      setNewFolderName("");
+      setIsCreateOpen(false);
+    }
+  };
 
   return (
     <aside
@@ -109,41 +144,89 @@ export function FolderSidebar({
             <span className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">
               My Folders
             </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-5 w-5 text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-transparent"
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </Button>
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5 text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-transparent"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Create New Folder</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <Input
+                    placeholder="Folder name"
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleCreateFolder()}
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleCreateFolder}>Create</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         )}
         {userFolders.map((folder) => {
-          const Icon = iconMap[folder.icon] || FileText;
+          const Icon = iconMap[folder.icon] || Folder;
           return (
-            <button
+            <div
               key={folder.id}
-              onClick={() => onSelectFolder(folder.id)}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150",
+                "group w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150",
                 selectedFolder === folder.id
                   ? "bg-sidebar-accent text-sidebar-accent-foreground"
                   : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
               )}
             >
-              <Icon className="h-4 w-4 shrink-0" />
+              <button
+                onClick={() => onSelectFolder(folder.id)}
+                className="flex-1 flex items-center gap-3"
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                {!isCollapsed && (
+                  <>
+                    <span className="flex-1 text-left truncate">{folder.name}</span>
+                    <span className="text-xs text-sidebar-foreground/40">{folder.count}</span>
+                  </>
+                )}
+              </button>
               {!isCollapsed && (
-                <>
-                  <span className="flex-1 text-left truncate">{folder.name}</span>
-                  <span className="text-xs text-sidebar-foreground/40">{folder.count}</span>
-                </>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 opacity-0 group-hover:opacity-100 text-sidebar-foreground/40 hover:text-sidebar-foreground"
+                    >
+                      <MoreHorizontal className="h-3.5 w-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onClick={() => onDeleteFolder(folder.id)}
+                    >
+                      Delete Folder
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
-            </button>
+            </div>
           );
         })}
       </div>
 
-      {/* Footer - Trash & Settings */}
+      {/* Footer - Trash & Sign Out */}
       <div className="p-2 border-t border-sidebar-border space-y-0.5">
         {trashFolder && (
           <button
@@ -165,13 +248,14 @@ export function FolderSidebar({
           </button>
         )}
         <button
+          onClick={onSignOut}
           className={cn(
             "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150",
             "text-sidebar-foreground/50 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
           )}
         >
-          <Settings className="h-4 w-4 shrink-0" />
-          {!isCollapsed && <span className="flex-1 text-left truncate">Settings</span>}
+          <LogOut className="h-4 w-4 shrink-0" />
+          {!isCollapsed && <span className="flex-1 text-left truncate">Sign Out</span>}
         </button>
       </div>
     </aside>

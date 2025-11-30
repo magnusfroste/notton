@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Search, Plus, SortDesc } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Note } from "@/pages/Dashboard";
+import { Note } from "@/hooks/useNotes";
 import { format } from "date-fns";
 
 interface NotesListProps {
@@ -10,6 +10,8 @@ interface NotesListProps {
   onSelectNote: (note: Note) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  onCreateNote: () => void;
+  isTrashView?: boolean;
 }
 
 export function NotesList({
@@ -18,6 +20,8 @@ export function NotesList({
   onSelectNote,
   searchQuery,
   onSearchChange,
+  onCreateNote,
+  isTrashView,
 }: NotesListProps) {
   return (
     <div className="flex flex-col w-72 h-full border-r border-border bg-card">
@@ -55,13 +59,16 @@ export function NotesList({
             >
               <SortDesc className="h-3.5 w-3.5" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+            {!isTrashView && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10"
+                onClick={onCreateNote}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -70,9 +77,13 @@ export function NotesList({
       <div className="flex-1 overflow-y-auto tahoe-scrollbar px-2 pb-2">
         {notes.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 text-center px-4">
-            <p className="text-sm text-muted-foreground">No notes found</p>
+            <p className="text-sm text-muted-foreground">
+              {isTrashView ? "Trash is empty" : "No notes found"}
+            </p>
             <p className="text-xs text-muted-foreground/60 mt-1">
-              Try a different search or create a new note
+              {isTrashView
+                ? "Deleted notes will appear here"
+                : "Try a different search or create a new note"}
             </p>
           </div>
         ) : (
@@ -96,14 +107,15 @@ export function NotesList({
                       : "text-foreground/90"
                   )}
                 >
-                  {note.title}
+                  {note.title || "Untitled"}
                 </h3>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-xs text-muted-foreground">
-                    {format(note.updatedAt, "MMM d")}
+                    {format(new Date(note.updated_at), "MMM d")}
                   </span>
                   <span className="text-xs text-muted-foreground/60 truncate flex-1">
-                    {note.content.slice(0, 50)}...
+                    {note.content?.slice(0, 50) || "No content"}
+                    {note.content && note.content.length > 50 ? "..." : ""}
                   </span>
                 </div>
               </button>
