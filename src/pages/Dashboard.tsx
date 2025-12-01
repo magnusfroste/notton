@@ -4,6 +4,7 @@ import { FolderSidebar } from "@/components/notes/FolderSidebar";
 import { NotesList } from "@/components/notes/NotesList";
 import { NoteEditor } from "@/components/notes/NoteEditor";
 import { AIChatPanel } from "@/components/notes/AIChatPanel";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotes, Note } from "@/hooks/useNotes";
 import { useProfile, SortBy, SortOrder } from "@/hooks/useProfile";
@@ -43,7 +44,23 @@ const Dashboard = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { notes, folders: userFolders, loading: notesLoading, createNote, importNote, updateNote, deleteNote, restoreNote, createFolder, updateFolder, deleteFolder } = useNotes();
+  const { 
+    notes, 
+    folders: userFolders, 
+    loading: notesLoading, 
+    isOnline, 
+    hasPendingSync, 
+    isSyncing, 
+    syncPendingChanges,
+    createNote, 
+    importNote, 
+    updateNote, 
+    deleteNote, 
+    restoreNote, 
+    createFolder, 
+    updateFolder, 
+    deleteFolder 
+  } = useNotes();
   const { sortBy, sortOrder, updatePreferences } = useProfile();
   
   const [selectedFolder, setSelectedFolder] = useState<string>("all");
@@ -567,6 +584,13 @@ const Dashboard = () => {
           </div>
         ) : null}
       </DragOverlay>
+
+      <OfflineIndicator
+        isOnline={isOnline}
+        hasPendingSync={hasPendingSync}
+        onSync={syncPendingChanges}
+        isSyncing={isSyncing}
+      />
     </DndContext>
   );
 };
