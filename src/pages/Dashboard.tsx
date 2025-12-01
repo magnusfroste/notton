@@ -28,6 +28,8 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isAIPanelOpen, setIsAIPanelOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [aiFolderNotes, setAiFolderNotes] = useState<Note[] | null>(null);
+  const [aiFolderName, setAiFolderName] = useState<string | undefined>(undefined);
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -175,6 +177,31 @@ const Dashboard = () => {
     }
   };
 
+  const handleOpenFolderAI = (folderId: string) => {
+    const folderNotes = notes.filter(n => n.folder_id === folderId && !n.is_deleted);
+    const folder = userFolders.find(f => f.id === folderId);
+    setAiFolderNotes(folderNotes);
+    setAiFolderName(folder?.name);
+    setIsAIPanelOpen(true);
+  };
+
+  const handleOpenSingleNoteAI = () => {
+    setAiFolderNotes(null);
+    setAiFolderName(undefined);
+    setIsAIPanelOpen(true);
+  };
+
+  const handleCreateNoteFromAI = async (title: string, content: string) => {
+    // Create in current folder context or no folder
+    const folderId = aiFolderNotes && aiFolderNotes.length > 0 
+      ? aiFolderNotes[0].folder_id 
+      : (selectedFolder !== "all" && selectedFolder !== "trash" ? selectedFolder : null);
+    const newNote = await importNote(title, content, folderId);
+    if (newNote) {
+      setSelectedNote(newNote);
+    }
+  };
+
   if (authLoading || notesLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -199,6 +226,7 @@ const Dashboard = () => {
         onCreateFolder={createFolder}
         onDeleteFolder={deleteFolder}
         onSignOut={signOut}
+        onOpenFolderAI={handleOpenFolderAI}
       />
 
       {/* Center Column - Notes List */}
@@ -221,7 +249,7 @@ const Dashboard = () => {
       <NoteEditor
         note={selectedNote}
         folders={userFolders}
-        onOpenAIPanel={() => setIsAIPanelOpen(true)}
+        onOpenAIPanel={handleOpenSingleNoteAI}
         onUpdateNote={handleUpdateNote}
         onDeleteNote={handleDeleteNote}
         onRestoreNote={handleRestoreNote}
@@ -231,9 +259,16 @@ const Dashboard = () => {
       {/* AI Chat Panel - Slide-out */}
       <AIChatPanel
         isOpen={isAIPanelOpen}
-        onClose={() => setIsAIPanelOpen(false)}
-        note={selectedNote}
+        onClose={() => {
+          setIsAIPanelOpen(false);
+          setAiFolderNotes(null);
+          setAiFolderName(undefined);
+        }}
+        note={aiFolderNotes ? null : selectedNote}
+        notes={aiFolderNotes || undefined}
+        folderName={aiFolderName}
         onApplyContent={handleApplyAIContent}
+        onCreateNote={handleCreateNoteFromAI}
       />
     </div>
   );
