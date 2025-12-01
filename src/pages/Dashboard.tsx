@@ -6,6 +6,7 @@ import { NoteEditor } from "@/components/notes/NoteEditor";
 import { AIChatPanel } from "@/components/notes/AIChatPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotes, Note } from "@/hooks/useNotes";
+import { toast } from "sonner";
 
 export type { Note } from "@/hooks/useNotes";
 
@@ -138,6 +139,31 @@ const Dashboard = () => {
     }
   };
 
+  const handleDeleteNoteFromList = async (note: Note) => {
+    if (note.is_deleted) {
+      await deleteNote(note.id, true);
+    } else {
+      await deleteNote(note.id);
+    }
+  };
+
+  const handleDuplicateNote = async (note: Note) => {
+    const folderId = note.folder_id;
+    const newNote = await importNote(`${note.title} (copy)`, note.content, folderId);
+    if (newNote) {
+      setSelectedNote(newNote);
+      toast.success("Note duplicated");
+    }
+  };
+
+  const handleMoveNote = async (noteId: string, folderId: string | null) => {
+    await updateNote(noteId, { folder_id: folderId });
+    const folderName = folderId 
+      ? userFolders.find(f => f.id === folderId)?.name || "folder"
+      : "All Notes";
+    toast.success(`Note moved to ${folderName}`);
+  };
+
   const handleRestoreNote = async () => {
     if (!selectedNote) return;
     await restoreNote(selectedNote.id);
@@ -184,6 +210,10 @@ const Dashboard = () => {
         onSearchChange={setSearchQuery}
         onCreateNote={handleCreateNote}
         onImportNote={handleImportNote}
+        onDuplicateNote={handleDuplicateNote}
+        onDeleteNote={handleDeleteNoteFromList}
+        onMoveNote={handleMoveNote}
+        folders={userFolders}
         isTrashView={selectedFolder === "trash"}
       />
 
