@@ -17,10 +17,12 @@ import {
   UserCircle,
   Sparkles,
   Pencil,
+  Shield,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdminCheck } from "@/hooks/useAdminCheck";
 import { Button } from "@/components/ui/button";
 import { Folder as FolderType } from "@/pages/Dashboard";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -190,6 +192,7 @@ export function FolderSidebar({
   const navigate = useNavigate();
   const { user } = useAuth();
   const { profile } = useProfile();
+  const { isAdmin } = useAdminCheck();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [renameFolder, setRenameFolder] = useState<{ id: string; name: string } | null>(null);
@@ -397,6 +400,20 @@ export function FolderSidebar({
             </>
           )}
         </button>
+
+        {/* Admin Link - only shown for admins */}
+        {isAdmin && (
+          <button
+            onClick={() => navigate('/admin')}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150",
+              "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+            )}
+          >
+            <Shield className="h-4 w-4 shrink-0" />
+            {!isCollapsed && <span className="flex-1 text-left truncate">Admin Panel</span>}
+          </button>
+        )}
 
         <ThemeToggle collapsed={isCollapsed} />
         <button
