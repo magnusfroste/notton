@@ -191,6 +191,12 @@ const Dashboard = () => {
     setIsAIPanelOpen(true);
   };
 
+  const handleOpenAIWithNotes = (selectedNotes: Note[]) => {
+    setAiFolderNotes(selectedNotes);
+    setAiFolderName(`${selectedNotes.length} selected notes`);
+    setIsAIPanelOpen(true);
+  };
+
   const handleCreateNoteFromAI = async (title: string, content: string) => {
     // Create in current folder context or no folder
     const folderId = aiFolderNotes && aiFolderNotes.length > 0 
@@ -243,6 +249,7 @@ const Dashboard = () => {
         onMoveNote={handleMoveNote}
         folders={userFolders}
         isTrashView={selectedFolder === "trash"}
+        onOpenAIWithNotes={handleOpenAIWithNotes}
       />
 
       {/* Right Column - Note Editor */}
