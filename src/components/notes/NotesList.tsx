@@ -1,10 +1,20 @@
 import { useRef } from "react";
 import { cn } from "@/lib/utils";
-import { Search, Plus, SortDesc, Upload } from "lucide-react";
+import { Search, Plus, SortDesc, Upload, Copy, Trash2, FolderInput, Folder as FolderIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Note } from "@/hooks/useNotes";
+import { Note, Folder } from "@/hooks/useNotes";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 
 interface NotesListProps {
   notes: Note[];
@@ -14,6 +24,10 @@ interface NotesListProps {
   onSearchChange: (query: string) => void;
   onCreateNote: () => void;
   onImportNote?: (title: string, content: string) => Promise<Note | null>;
+  onDuplicateNote?: (note: Note) => void;
+  onDeleteNote?: (note: Note) => void;
+  onMoveNote?: (noteId: string, folderId: string | null) => void;
+  folders?: Folder[];
   isTrashView?: boolean;
 }
 
@@ -25,6 +39,10 @@ export function NotesList({
   onSearchChange,
   onCreateNote,
   onImportNote,
+  onDuplicateNote,
+  onDeleteNote,
+  onMoveNote,
+  folders = [],
   isTrashView,
 }: NotesListProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -147,36 +165,83 @@ export function NotesList({
         ) : (
           <div className="space-y-1">
             {notes.map((note) => (
-              <button
-                key={note.id}
-                onClick={() => onSelectNote(note)}
-                className={cn(
-                  "w-full text-left p-3 rounded-xl transition-all duration-150",
-                  selectedNote?.id === note.id
-                    ? "bg-primary/15 border border-primary/20"
-                    : "hover:bg-muted/50 border border-transparent"
-                )}
-              >
-                <h3
-                  className={cn(
-                    "font-medium text-sm truncate",
-                    selectedNote?.id === note.id
-                      ? "text-foreground"
-                      : "text-foreground/90"
+              <ContextMenu key={note.id}>
+                <ContextMenuTrigger asChild>
+                  <button
+                    onClick={() => onSelectNote(note)}
+                    className={cn(
+                      "w-full text-left p-3 rounded-xl transition-all duration-150",
+                      selectedNote?.id === note.id
+                        ? "bg-primary/15 border border-primary/20"
+                        : "hover:bg-muted/50 border border-transparent"
+                    )}
+                  >
+                    <h3
+                      className={cn(
+                        "font-medium text-sm truncate",
+                        selectedNote?.id === note.id
+                          ? "text-foreground"
+                          : "text-foreground/90"
+                      )}
+                    >
+                      {note.title || "Untitled"}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-muted-foreground">
+                        {format(new Date(note.updated_at), "MMM d")}
+                      </span>
+                      <span className="text-xs text-muted-foreground/60 truncate flex-1">
+                        {note.content?.slice(0, 50) || "No content"}
+                        {note.content && note.content.length > 50 ? "..." : ""}
+                      </span>
+                    </div>
+                  </button>
+                </ContextMenuTrigger>
+                <ContextMenuContent className="w-48">
+                  {!isTrashView && (
+                    <>
+                      <ContextMenuItem onClick={() => onDuplicateNote?.(note)}>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Duplicate
+                      </ContextMenuItem>
+                      <ContextMenuSub>
+                        <ContextMenuSubTrigger>
+                          <FolderInput className="h-4 w-4 mr-2" />
+                          Move to folder
+                        </ContextMenuSubTrigger>
+                        <ContextMenuSubContent className="w-48">
+                          <ContextMenuItem
+                            onClick={() => onMoveNote?.(note.id, null)}
+                            className={!note.folder_id ? "bg-muted" : ""}
+                          >
+                            <FolderIcon className="h-4 w-4 mr-2" />
+                            No Folder
+                          </ContextMenuItem>
+                          {folders.length > 0 && <ContextMenuSeparator />}
+                          {folders.map((folder) => (
+                            <ContextMenuItem
+                              key={folder.id}
+                              onClick={() => onMoveNote?.(note.id, folder.id)}
+                              className={note.folder_id === folder.id ? "bg-muted" : ""}
+                            >
+                              <FolderIcon className="h-4 w-4 mr-2" />
+                              {folder.name}
+                            </ContextMenuItem>
+                          ))}
+                        </ContextMenuSubContent>
+                      </ContextMenuSub>
+                      <ContextMenuSeparator />
+                    </>
                   )}
-                >
-                  {note.title || "Untitled"}
-                </h3>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs text-muted-foreground">
-                    {format(new Date(note.updated_at), "MMM d")}
-                  </span>
-                  <span className="text-xs text-muted-foreground/60 truncate flex-1">
-                    {note.content?.slice(0, 50) || "No content"}
-                    {note.content && note.content.length > 50 ? "..." : ""}
-                  </span>
-                </div>
-              </button>
+                  <ContextMenuItem
+                    onClick={() => onDeleteNote?.(note)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {isTrashView ? "Delete Forever" : "Delete"}
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
             ))}
           </div>
         )}
