@@ -5,12 +5,14 @@ import { toast } from '@/hooks/use-toast';
 
 export type SortBy = 'updated' | 'created' | 'title';
 export type SortOrder = 'asc' | 'desc';
+export type FontSize = 'small' | 'medium' | 'large' | 'extra-large';
 
 export interface ProfilePreferences {
   editor_mode: 'rich' | 'markdown';
   show_line_numbers: boolean;
   sort_by: SortBy;
   sort_order: SortOrder;
+  font_size: FontSize;
 }
 
 export interface Profile {
@@ -27,6 +29,7 @@ const defaultPreferences: ProfilePreferences = {
   show_line_numbers: false,
   sort_by: 'updated',
   sort_order: 'desc',
+  font_size: 'medium',
 };
 
 export function useProfile() {
@@ -128,6 +131,7 @@ export function useProfile() {
   const showLineNumbers = profile?.preferences?.show_line_numbers ?? false;
   const sortBy = profile?.preferences?.sort_by || 'updated';
   const sortOrder = profile?.preferences?.sort_order || 'desc';
+  const fontSize = profile?.preferences?.font_size || 'medium';
 
   return {
     profile,
@@ -139,5 +143,6 @@ export function useProfile() {
     showLineNumbers,
     sortBy,
     sortOrder,
+    fontSize,
   };
 }

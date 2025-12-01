@@ -91,7 +91,22 @@ export function NoteEditor({
   const [showNoteInfo, setShowNoteInfo] = useState(false);
   const pdfContentRef = useRef<HTMLDivElement>(null);
   
-  const { editorMode, showLineNumbers, updatePreferences } = useProfile();
+  const { editorMode, showLineNumbers, fontSize, updatePreferences } = useProfile();
+
+  // Font size class mapping
+  const fontSizeClasses = {
+    'small': 'prose-sm',
+    'medium': 'prose-base',
+    'large': 'prose-lg',
+    'extra-large': 'prose-xl',
+  };
+
+  const codeMirrorFontSizes = {
+    'small': '13px',
+    'medium': '15px',
+    'large': '17px',
+    'extra-large': '19px',
+  };
 
   // Calculate word and character count
   const content = rawMarkdown || note?.content || "";
@@ -147,8 +162,7 @@ export function NoteEditor({
     editable: !isTrashView,
     editorProps: {
       attributes: {
-        class:
-          "prose prose-invert prose-sm max-w-none focus:outline-none min-h-[calc(100vh-280px)]",
+        class: `prose prose-invert ${fontSizeClasses[fontSize]} max-w-none focus:outline-none min-h-[calc(100vh-280px)]`,
       },
     },
     onUpdate: ({ editor }) => {
@@ -633,7 +647,7 @@ export function NoteEditor({
                 EditorView.theme({
                   "&": {
                     backgroundColor: "transparent",
-                    fontSize: "14px",
+                    fontSize: codeMirrorFontSizes[fontSize],
                   },
                   ".cm-content": {
                     fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",

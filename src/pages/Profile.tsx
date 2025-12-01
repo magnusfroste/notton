@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
+import { PreferencesCard } from '@/components/profile/PreferencesCard';
 import { format } from 'date-fns';
 
 const Profile = () => {
@@ -149,6 +150,9 @@ const Profile = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Preferences */}
+        <PreferencesCard />
 
         {/* Premium Placeholder */}
         <Card className="border-primary/20 bg-primary/5">
