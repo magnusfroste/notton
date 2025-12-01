@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Folder as FolderType } from "@/pages/Dashboard";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   Dialog,
   DialogContent,
@@ -226,7 +227,7 @@ export function FolderSidebar({
         })}
       </div>
 
-      {/* Footer - Trash & Sign Out */}
+      {/* Footer - Trash, Theme Toggle & Sign Out */}
       <div className="p-2 border-t border-sidebar-border space-y-0.5">
         {trashFolder && (
           <button
@@ -247,6 +248,7 @@ export function FolderSidebar({
             )}
           </button>
         )}
+        <ThemeToggle collapsed={isCollapsed} />
         <button
           onClick={onSignOut}
           className={cn(
