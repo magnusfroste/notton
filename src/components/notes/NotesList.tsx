@@ -1,9 +1,10 @@
 import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Search, Plus, SortDesc, Upload, Copy, Trash2, FolderInput, Folder as FolderIcon, CheckSquare, X, Sparkles, GripVertical } from "lucide-react";
+import { Search, Plus, SortDesc, SortAsc, Upload, Copy, Trash2, FolderInput, Folder as FolderIcon, CheckSquare, Sparkles, Calendar, Clock, Type, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Note, Folder } from "@/hooks/useNotes";
+import { SortBy, SortOrder } from "@/hooks/useProfile";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import {
@@ -40,6 +41,9 @@ interface NotesListProps {
   folders?: Folder[];
   isTrashView?: boolean;
   onOpenAIWithNotes?: (notes: Note[]) => void;
+  sortBy: SortBy;
+  sortOrder: SortOrder;
+  onSortChange: (sortBy: SortBy, sortOrder: SortOrder) => void;
 }
 
 interface DraggableNoteItemProps {
@@ -114,17 +118,6 @@ function DraggableNoteItem({
               : "hover:bg-muted/50 border border-transparent"
           )}
         >
-          {/* Drag handle */}
-          {!isSelectMode && !isTrashView && (
-            <div
-              {...attributes}
-              {...listeners}
-              className="pt-1 shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground touch-none"
-            >
-              <GripVertical className="h-4 w-4" />
-            </div>
-          )}
-          
           {/* Checkbox in select mode */}
           {isSelectMode && (
             <div
@@ -234,6 +227,9 @@ export function NotesList({
   folders = [],
   isTrashView,
   onOpenAIWithNotes,
+  sortBy,
+  sortOrder,
+  onSortChange,
 }: NotesListProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSelectMode, setIsSelectMode] = useState(false);
@@ -369,13 +365,66 @@ export function NotesList({
                 <CheckSquare className="h-3.5 w-3.5" />
               </Button>
             )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-foreground"
-            >
-              <SortDesc className="h-3.5 w-3.5" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                  title="Sort notes"
+                >
+                  {sortOrder === 'desc' ? (
+                    <SortDesc className="h-3.5 w-3.5" />
+                  ) : (
+                    <SortAsc className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 bg-popover">
+                <DropdownMenuItem
+                  onClick={() => onSortChange('updated', sortBy === 'updated' && sortOrder === 'desc' ? 'asc' : 'desc')}
+                  className="flex items-center justify-between"
+                >
+                  <span className="flex items-center">
+                    <Clock className="h-4 w-4 mr-2" />
+                    Date Modified
+                  </span>
+                  {sortBy === 'updated' && (
+                    <span className="text-xs text-muted-foreground">
+                      {sortOrder === 'desc' ? '↓ newest' : '↑ oldest'}
+                    </span>
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => onSortChange('created', sortBy === 'created' && sortOrder === 'desc' ? 'asc' : 'desc')}
+                  className="flex items-center justify-between"
+                >
+                  <span className="flex items-center">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Date Created
+                  </span>
+                  {sortBy === 'created' && (
+                    <span className="text-xs text-muted-foreground">
+                      {sortOrder === 'desc' ? '↓ newest' : '↑ oldest'}
+                    </span>
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => onSortChange('title', sortBy === 'title' && sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className="flex items-center justify-between"
+                >
+                  <span className="flex items-center">
+                    <Type className="h-4 w-4 mr-2" />
+                    Title
+                  </span>
+                  {sortBy === 'title' && (
+                    <span className="text-xs text-muted-foreground">
+                      {sortOrder === 'asc' ? 'A → Z' : 'Z → A'}
+                    </span>
+                  )}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             {!isTrashView && (
               <>
                 <input
