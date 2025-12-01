@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
   FileText,
@@ -13,7 +14,11 @@ import {
   LogOut,
   Folder,
   MoreHorizontal,
+  UserCircle,
 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useProfile } from "@/hooks/useProfile";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Folder as FolderType } from "@/pages/Dashboard";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -63,8 +68,18 @@ export function FolderSidebar({
   onDeleteFolder,
   onSignOut,
 }: FolderSidebarProps) {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { profile } = useProfile();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
+
+  const getInitials = (name: string | null, email: string | undefined) => {
+    if (name) {
+      return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    }
+    return email?.charAt(0).toUpperCase() || 'U';
+  };
 
   const systemFolders = folders.filter((f) => f.isSystem && f.id !== "trash");
   const userFolders = folders.filter((f) => !f.isSystem);
@@ -227,7 +242,7 @@ export function FolderSidebar({
         })}
       </div>
 
-      {/* Footer - Trash, Theme Toggle & Sign Out */}
+      {/* Footer - Trash, Profile, Theme Toggle & Sign Out */}
       <div className="p-2 border-t border-sidebar-border space-y-0.5">
         {trashFolder && (
           <button
@@ -248,6 +263,32 @@ export function FolderSidebar({
             )}
           </button>
         )}
+        
+        {/* Profile Link */}
+        <button
+          onClick={() => navigate('/profile')}
+          className={cn(
+            "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150",
+            "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+          )}
+        >
+          {isCollapsed ? (
+            <UserCircle className="h-4 w-4 shrink-0" />
+          ) : (
+            <>
+              <Avatar className="h-5 w-5">
+                <AvatarImage src={profile?.avatar_url || undefined} />
+                <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                  {getInitials(profile?.display_name || null, user?.email)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="flex-1 text-left truncate">
+                {profile?.display_name || user?.email?.split('@')[0] || 'Profile'}
+              </span>
+            </>
+          )}
+        </button>
+
         <ThemeToggle collapsed={isCollapsed} />
         <button
           onClick={onSignOut}
