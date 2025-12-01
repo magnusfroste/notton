@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import {
   X,
   Sparkles,
@@ -181,7 +183,34 @@ export function AIChatPanel({ isOpen, onClose, note, onApplyContent }: AIChatPan
                     {message.role === "user" ? (
                       message.content
                     ) : (
-                      <ReactMarkdown>{message.content}</ReactMarkdown>
+                      <ReactMarkdown
+                        components={{
+                          code({ className, children, ...props }) {
+                            const match = /language-(\w+)/.exec(className || "");
+                            const isInline = !match && !String(children).includes("\n");
+                            return isInline ? (
+                              <code className={className} {...props}>
+                                {children}
+                              </code>
+                            ) : (
+                              <SyntaxHighlighter
+                                style={oneDark}
+                                language={match?.[1] || "text"}
+                                PreTag="div"
+                                customStyle={{
+                                  margin: "0.5rem 0",
+                                  borderRadius: "0.5rem",
+                                  fontSize: "0.75rem",
+                                }}
+                              >
+                                {String(children).replace(/\n$/, "")}
+                              </SyntaxHighlighter>
+                            );
+                          },
+                        }}
+                      >
+                        {message.content}
+                      </ReactMarkdown>
                     )}
                   </div>
                   {message.role === "assistant" && message.content && (
