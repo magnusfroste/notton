@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import ReactMarkdown from "react-markdown";
 import {
   X,
   Sparkles,
@@ -171,13 +172,17 @@ export function AIChatPanel({ isOpen, onClose, note, onApplyContent }: AIChatPan
                 >
                   <div
                     className={cn(
-                      "max-w-[85%] px-4 py-2.5 rounded-2xl text-sm whitespace-pre-wrap",
+                      "max-w-[85%] px-4 py-2.5 rounded-2xl text-sm",
                       message.role === "user"
-                        ? "bg-primary text-primary-foreground rounded-br-md"
-                        : "bg-muted text-foreground rounded-bl-md"
+                        ? "bg-primary text-primary-foreground rounded-br-md whitespace-pre-wrap"
+                        : "bg-muted text-foreground rounded-bl-md prose prose-sm dark:prose-invert prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 prose-headings:my-2 prose-code:bg-background/50 prose-code:px-1 prose-code:rounded max-w-none"
                     )}
                   >
-                    {message.content}
+                    {message.role === "user" ? (
+                      message.content
+                    ) : (
+                      <ReactMarkdown>{message.content}</ReactMarkdown>
+                    )}
                   </div>
                   {message.role === "assistant" && message.content && (
                     <div className="flex items-center gap-1 mt-1">

@@ -27,28 +27,32 @@ serve(async (req) => {
     // Build system prompt based on action
     let systemPrompt = `You are an AI assistant for a notes application called Tahoe Notes. You help users edit, improve, summarize, and generate content for their notes.
 
+The note content is stored in **Markdown format**. You MUST understand and preserve Markdown syntax.
+
 Current note title: "${noteTitle || 'Untitled'}"
-Current note content:
-"""
+Current note content (Markdown):
+\`\`\`markdown
 ${noteContent || '(empty note)'}
-"""
+\`\`\`
 
 Guidelines:
 - Be concise and helpful
-- When asked to improve or edit content, provide the improved text directly
-- When summarizing, be brief but capture key points
-- When generating ideas, provide actionable suggestions
-- Format your responses with proper paragraphs and lists when appropriate
-- If asked to generate content, write in a clear, professional style`;
+- **Always return content in Markdown format**
+- Preserve existing Markdown formatting (headers, lists, bold, italic, links, code blocks, etc.)
+- When asked to improve or edit content, return properly formatted Markdown
+- When summarizing, use Markdown formatting (bullet points, headers if appropriate)
+- When generating ideas, format as a Markdown list
+- Use proper Markdown syntax: # for headers, - or * for lists, **bold**, *italic*, \`code\`, etc.
+- For task lists, use - [ ] syntax for unchecked and - [x] for checked items`;
 
     if (action === 'improve') {
-      systemPrompt += `\n\nThe user wants to improve the writing in their note. Analyze the content and provide an improved version with better grammar, clarity, and flow. Return ONLY the improved content, nothing else.`;
+      systemPrompt += `\n\nThe user wants to improve the writing in their note. Analyze the Markdown content and provide an improved version with better grammar, clarity, and flow. Return ONLY the improved Markdown content, preserving and enhancing the formatting.`;
     } else if (action === 'summarize') {
-      systemPrompt += `\n\nThe user wants a summary of their note. Provide a concise summary capturing the key points.`;
+      systemPrompt += `\n\nThe user wants a summary of their note. Provide a concise summary in Markdown format, using bullet points for key points.`;
     } else if (action === 'tasks') {
-      systemPrompt += `\n\nThe user wants to extract action items from their note. List any tasks, to-dos, or action items mentioned in the content as a bullet list.`;
+      systemPrompt += `\n\nThe user wants to extract action items from their note. List any tasks, to-dos, or action items as a Markdown task list using - [ ] syntax.`;
     } else if (action === 'ideas') {
-      systemPrompt += `\n\nThe user wants related ideas for their note. Suggest 3-5 related ideas or topics they could explore or add to their note.`;
+      systemPrompt += `\n\nThe user wants related ideas for their note. Suggest 3-5 related ideas formatted as a Markdown list with brief descriptions.`;
     }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
