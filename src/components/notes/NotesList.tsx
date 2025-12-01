@@ -342,11 +342,19 @@ export function NotesList({
 
         {/* Actions Row */}
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">
-            {isSelectMode && selectedNotes.size > 0
-              ? `${selectedNotes.size} selected`
-              : `${notes.length} ${notes.length === 1 ? "note" : "notes"}`}
-          </span>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span>
+              {isSelectMode && selectedNotes.size > 0
+                ? `${selectedNotes.size} selected`
+                : `${notes.length} ${notes.length === 1 ? "note" : "notes"}`}
+            </span>
+            <span className="text-muted-foreground/40">•</span>
+            <span className="text-muted-foreground/70">
+              {sortBy === 'updated' && (sortOrder === 'desc' ? 'Modified ↓' : 'Modified ↑')}
+              {sortBy === 'created' && (sortOrder === 'desc' ? 'Created ↓' : 'Created ↑')}
+              {sortBy === 'title' && (sortOrder === 'asc' ? 'A → Z' : 'Z → A')}
+            </span>
+          </div>
           <div className="flex items-center gap-1">
             {/* Select mode toggle */}
             {notes.length > 1 && !isTrashView && (
