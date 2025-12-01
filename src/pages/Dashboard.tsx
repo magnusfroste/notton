@@ -7,6 +7,20 @@ import { AIChatPanel } from "@/components/notes/AIChatPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotes, Note } from "@/hooks/useNotes";
 import { toast } from "sonner";
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragStartEvent,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 
 export type { Note } from "@/hooks/useNotes";
 
@@ -30,6 +44,15 @@ const Dashboard = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [aiFolderNotes, setAiFolderNotes] = useState<Note[] | null>(null);
   const [aiFolderName, setAiFolderName] = useState<string | undefined>(undefined);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -208,6 +231,37 @@ const Dashboard = () => {
     }
   };
 
+  // Drag and drop handlers
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+
+    if (!over) return;
+
+    const overId = over.id as string;
+    
+    // Check if dropped on a folder
+    if (overId.startsWith("folder-")) {
+      const targetFolderId = over.data.current?.folderId as string | null;
+      const noteId = active.id as string;
+      
+      // Find the note being dragged
+      const draggedNote = notes.find(n => n.id === noteId);
+      if (!draggedNote) return;
+      
+      // Don't move if it's already in the same folder
+      if (draggedNote.folder_id === targetFolderId) return;
+      
+      handleMoveNote(noteId, targetFolderId);
+    }
+  };
+
+  const activeNote = activeId ? notes.find(n => n.id === activeId) : null;
+
   if (authLoading || notesLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -221,63 +275,89 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="flex h-screen w-full bg-background">
-      {/* Left Sidebar - Folders */}
-      <FolderSidebar
-        folders={folders}
-        selectedFolder={selectedFolder}
-        onSelectFolder={setSelectedFolder}
-        isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        onCreateFolder={createFolder}
-        onDeleteFolder={deleteFolder}
-        onSignOut={signOut}
-        onOpenFolderAI={handleOpenFolderAI}
-      />
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="flex h-screen w-full bg-background">
+        {/* Left Sidebar - Folders */}
+        <FolderSidebar
+          folders={folders}
+          selectedFolder={selectedFolder}
+          onSelectFolder={setSelectedFolder}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          onCreateFolder={createFolder}
+          onDeleteFolder={deleteFolder}
+          onSignOut={signOut}
+          onOpenFolderAI={handleOpenFolderAI}
+        />
 
-      {/* Center Column - Notes List */}
-      <NotesList
-        notes={filteredNotes}
-        selectedNote={selectedNote}
-        onSelectNote={setSelectedNote}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        onCreateNote={handleCreateNote}
-        onImportNote={handleImportNote}
-        onDuplicateNote={handleDuplicateNote}
-        onDeleteNote={handleDeleteNoteFromList}
-        onMoveNote={handleMoveNote}
-        folders={userFolders}
-        isTrashView={selectedFolder === "trash"}
-        onOpenAIWithNotes={handleOpenAIWithNotes}
-      />
+        {/* Center Column - Notes List */}
+        <SortableContext
+          items={filteredNotes.map(n => n.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <NotesList
+            notes={filteredNotes}
+            selectedNote={selectedNote}
+            onSelectNote={setSelectedNote}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onCreateNote={handleCreateNote}
+            onImportNote={handleImportNote}
+            onDuplicateNote={handleDuplicateNote}
+            onDeleteNote={handleDeleteNoteFromList}
+            onMoveNote={handleMoveNote}
+            folders={userFolders}
+            isTrashView={selectedFolder === "trash"}
+            onOpenAIWithNotes={handleOpenAIWithNotes}
+          />
+        </SortableContext>
 
-      {/* Right Column - Note Editor */}
-      <NoteEditor
-        note={selectedNote}
-        folders={userFolders}
-        onOpenAIPanel={handleOpenSingleNoteAI}
-        onUpdateNote={handleUpdateNote}
-        onDeleteNote={handleDeleteNote}
-        onRestoreNote={handleRestoreNote}
-        isTrashView={selectedFolder === "trash"}
-      />
+        {/* Right Column - Note Editor */}
+        <NoteEditor
+          note={selectedNote}
+          folders={userFolders}
+          onOpenAIPanel={handleOpenSingleNoteAI}
+          onUpdateNote={handleUpdateNote}
+          onDeleteNote={handleDeleteNote}
+          onRestoreNote={handleRestoreNote}
+          isTrashView={selectedFolder === "trash"}
+        />
 
-      {/* AI Chat Panel - Slide-out */}
-      <AIChatPanel
-        isOpen={isAIPanelOpen}
-        onClose={() => {
-          setIsAIPanelOpen(false);
-          setAiFolderNotes(null);
-          setAiFolderName(undefined);
-        }}
-        note={aiFolderNotes ? null : selectedNote}
-        notes={aiFolderNotes || undefined}
-        folderName={aiFolderName}
-        onApplyContent={handleApplyAIContent}
-        onCreateNote={handleCreateNoteFromAI}
-      />
-    </div>
+        {/* AI Chat Panel - Slide-out */}
+        <AIChatPanel
+          isOpen={isAIPanelOpen}
+          onClose={() => {
+            setIsAIPanelOpen(false);
+            setAiFolderNotes(null);
+            setAiFolderName(undefined);
+          }}
+          note={aiFolderNotes ? null : selectedNote}
+          notes={aiFolderNotes || undefined}
+          folderName={aiFolderName}
+          onApplyContent={handleApplyAIContent}
+          onCreateNote={handleCreateNoteFromAI}
+        />
+      </div>
+
+      {/* Drag Overlay */}
+      <DragOverlay>
+        {activeNote ? (
+          <div className="w-64 p-3 rounded-xl bg-card border border-primary/30 shadow-lg">
+            <h3 className="font-medium text-sm truncate text-foreground">
+              {activeNote.title || "Untitled"}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1 truncate">
+              {activeNote.content?.slice(0, 50) || "No content"}
+            </p>
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 };
 
