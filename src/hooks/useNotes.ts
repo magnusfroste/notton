@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { useOfflineCache } from "./useOfflineCache";
 
 export interface Note {
   id: string;
@@ -30,9 +31,37 @@ export function useNotes() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const initialLoadDone = useRef(false);
+
+  const {
+    isOnline,
+    hasPendingSync,
+    cacheNotes,
+    cacheFolders,
+    getCachedNotes,
+    getCachedFolders,
+    updateCachedNote,
+    deleteCachedNote,
+    addPendingSync,
+    getPendingSyncs,
+    clearPendingSync,
+    clearAllPendingSyncs,
+  } = useOfflineCache();
 
   const fetchNotes = useCallback(async () => {
     if (!user) return;
+
+    // If offline, use cached data
+    if (!navigator.onLine) {
+      const cached = await getCachedNotes();
+      if (cached.length > 0) {
+        setNotes(cached.filter((n) => n.user_id === user.id).sort((a, b) => 
+          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+        ));
+      }
+      return;
+    }
     
     const { data, error } = await supabase
       .from("notes")
@@ -41,15 +70,37 @@ export function useNotes() {
       .order("updated_at", { ascending: false });
 
     if (error) {
-      toast.error("Failed to fetch notes");
+      // On error, try cache
+      const cached = await getCachedNotes();
+      if (cached.length > 0) {
+        setNotes(cached.filter((n) => n.user_id === user.id));
+        toast.error("Using cached data - couldn't reach server");
+      } else {
+        toast.error("Failed to fetch notes");
+      }
       console.error(error);
     } else {
       setNotes(data || []);
+      // Cache the fetched data
+      if (data) {
+        await cacheNotes(data);
+      }
     }
-  }, [user]);
+  }, [user, getCachedNotes, cacheNotes]);
 
   const fetchFolders = useCallback(async () => {
     if (!user) return;
+
+    // If offline, use cached data
+    if (!navigator.onLine) {
+      const cached = await getCachedFolders();
+      if (cached.length > 0) {
+        setFolders(cached.filter((f) => f.user_id === user.id).sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        ));
+      }
+      return;
+    }
     
     const { data, error } = await supabase
       .from("folders")
@@ -58,24 +109,109 @@ export function useNotes() {
       .order("created_at", { ascending: true });
 
     if (error) {
-      toast.error("Failed to fetch folders");
+      const cached = await getCachedFolders();
+      if (cached.length > 0) {
+        setFolders(cached.filter((f) => f.user_id === user.id));
+        toast.error("Using cached data - couldn't reach server");
+      } else {
+        toast.error("Failed to fetch folders");
+      }
       console.error(error);
     } else {
       setFolders(data || []);
+      if (data) {
+        await cacheFolders(data);
+      }
     }
-  }, [user]);
+  }, [user, getCachedFolders, cacheFolders]);
+
+  // Sync pending changes when back online
+  const syncPendingChanges = useCallback(async () => {
+    if (!user || !navigator.onLine) return;
+
+    const pending = await getPendingSyncs();
+    if (pending.length === 0) return;
+
+    setIsSyncing(true);
+    let syncedCount = 0;
+
+    for (const item of pending) {
+      try {
+        if (item.type === "note") {
+          if (item.action === "update") {
+            const { error } = await supabase
+              .from("notes")
+              .update(item.data)
+              .eq("id", item.id);
+            if (!error) {
+              await clearPendingSync(item.id);
+              syncedCount++;
+            }
+          } else if (item.action === "delete") {
+            const { error } = await supabase
+              .from("notes")
+              .delete()
+              .eq("id", item.id);
+            if (!error) {
+              await clearPendingSync(item.id);
+              syncedCount++;
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Sync error:", error);
+      }
+    }
+
+    setIsSyncing(false);
+
+    if (syncedCount > 0) {
+      toast.success(`Synced ${syncedCount} change${syncedCount > 1 ? "s" : ""}`);
+      await fetchNotes();
+    }
+  }, [user, getPendingSyncs, clearPendingSync, fetchNotes]);
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
+      
+      // Load cached data first for instant UI
+      if (!initialLoadDone.current) {
+        const [cachedNotes, cachedFolders] = await Promise.all([
+          getCachedNotes(),
+          getCachedFolders(),
+        ]);
+        
+        if (cachedNotes.length > 0 && user) {
+          setNotes(cachedNotes.filter((n) => n.user_id === user.id));
+        }
+        if (cachedFolders.length > 0 && user) {
+          setFolders(cachedFolders.filter((f) => f.user_id === user.id));
+        }
+        initialLoadDone.current = true;
+      }
+
+      // Then fetch fresh data
       await Promise.all([fetchNotes(), fetchFolders()]);
       setLoading(false);
+
+      // Sync pending changes if online
+      if (navigator.onLine) {
+        await syncPendingChanges();
+      }
     };
 
     if (user) {
       loadData();
     }
-  }, [user, fetchNotes, fetchFolders]);
+  }, [user, fetchNotes, fetchFolders, getCachedNotes, getCachedFolders, syncPendingChanges]);
+
+  // Auto-sync when coming back online
+  useEffect(() => {
+    if (isOnline && hasPendingSync) {
+      syncPendingChanges();
+    }
+  }, [isOnline, hasPendingSync, syncPendingChanges]);
 
   const createNote = async (folderId?: string | null) => {
     if (!user) return null;
@@ -124,7 +260,7 @@ export function useNotes() {
     return data;
   };
 
-  // Optimistic update with rollback
+  // Optimistic update with rollback and offline support
   const updateNote = async (id: string, updates: Partial<Pick<Note, "title" | "content" | "folder_id" | "is_deleted" | "deleted_at">>) => {
     // Capture previous state for rollback
     const previousNotes = notes;
@@ -134,6 +270,24 @@ export function useNotes() {
     setNotes((prev) =>
       prev.map((note) => (note.id === id ? { ...note, ...optimisticUpdate } : note))
     );
+
+    // Update local cache
+    const updatedNote = notes.find((n) => n.id === id);
+    if (updatedNote) {
+      await updateCachedNote({ ...updatedNote, ...optimisticUpdate });
+    }
+
+    // If offline, queue for sync
+    if (!navigator.onLine) {
+      await addPendingSync({
+        id,
+        type: "note",
+        action: "update",
+        data: updates,
+        timestamp: Date.now(),
+      });
+      return true;
+    }
 
     // Make API call
     const { error } = await supabase
@@ -152,13 +306,28 @@ export function useNotes() {
     return true;
   };
 
-  // Optimistic delete with rollback
+  // Optimistic delete with rollback and offline support
   const deleteNote = async (id: string, permanent = false) => {
     const previousNotes = notes;
     
     if (permanent) {
       // Optimistically remove from list
       setNotes((prev) => prev.filter((note) => note.id !== id));
+      
+      // Update cache
+      await deleteCachedNote(id);
+
+      // If offline, queue for sync
+      if (!navigator.onLine) {
+        await addPendingSync({
+          id,
+          type: "note",
+          action: "delete",
+          data: {},
+          timestamp: Date.now(),
+        });
+        return true;
+      }
 
       const { error } = await supabase
         .from("notes")
@@ -280,6 +449,9 @@ export function useNotes() {
     notes,
     folders,
     loading,
+    isOnline,
+    hasPendingSync,
+    isSyncing,
     createNote,
     importNote,
     updateNote,
@@ -288,6 +460,7 @@ export function useNotes() {
     createFolder,
     updateFolder,
     deleteFolder,
+    syncPendingChanges,
     refetch: useCallback(() => Promise.all([fetchNotes(), fetchFolders()]), [fetchNotes, fetchFolders]),
   };
 }
