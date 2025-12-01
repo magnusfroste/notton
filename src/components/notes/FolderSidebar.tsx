@@ -274,7 +274,7 @@ export function FolderSidebar({
       )}
 
       {/* User Folders */}
-      <div className="flex-1 px-2 space-y-0.5 tahoe-scrollbar overflow-y-auto">
+      <div className="flex-1 px-2 space-y-0.5 notton-scrollbar overflow-y-auto">
         {!isCollapsed && (
           <div className="flex items-center justify-between px-3 py-2">
             <span className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">

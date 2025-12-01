@@ -539,7 +539,7 @@ export function NoteEditor({
       </div>
 
       {/* Editor Content */}
-      <div className="flex-1 overflow-y-auto tahoe-scrollbar">
+      <div className="flex-1 overflow-y-auto notton-scrollbar">
         <div ref={pdfContentRef} className="max-w-3xl mx-auto px-8 py-8">
           {/* Note Title */}
           <input

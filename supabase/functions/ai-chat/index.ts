@@ -44,7 +44,7 @@ serve(async (req) => {
     }
 
     // Build system prompt based on action
-    let systemPrompt = `You are an AI assistant for a notes application called Tahoe Notes. You help users edit, improve, summarize, and generate content for their notes.
+    let systemPrompt = `You are Notton AI, a magical AI assistant with superpowers for productivity. You help users organize, edit, improve, summarize, and generate content for their notes.
 
 The note content is stored in Markdown format. You understand and preserve Markdown syntax.
 
