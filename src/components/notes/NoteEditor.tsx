@@ -7,6 +7,7 @@ import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
+import { Markdown } from "tiptap-markdown";
 import {
   Bold,
   Italic,
@@ -89,6 +90,10 @@ export function NoteEditor({
       TaskItem.configure({
         nested: true,
       }),
+      Markdown.configure({
+        html: false,
+        transformPastedText: true,
+      }),
     ],
     content: note?.content || "",
     editable: !isTrashView,
@@ -99,7 +104,9 @@ export function NoteEditor({
       },
     },
     onUpdate: ({ editor }) => {
-      debouncedUpdateContent(editor.getHTML());
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const markdown = (editor.storage as any).markdown.getMarkdown();
+      debouncedUpdateContent(markdown);
     },
   });
 
