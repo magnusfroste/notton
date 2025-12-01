@@ -7,6 +7,11 @@ interface Message {
   content: string;
 }
 
+export interface NoteInput {
+  title: string;
+  content: string;
+}
+
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
 
 export function useAIChat() {
@@ -16,8 +21,8 @@ export function useAIChat() {
   const sendMessage = useCallback(
     async (
       userMessage: string,
-      noteContent: string,
-      noteTitle: string,
+      notesOrContent: NoteInput[] | string,
+      noteTitle?: string,
       action?: string
     ) => {
       const userMsg: Message = {
@@ -44,6 +49,21 @@ export function useAIChat() {
         });
       };
 
+      // Support both multi-note array and legacy single note params
+      const isMultiNote = Array.isArray(notesOrContent);
+      const body = isMultiNote
+        ? {
+            messages: [...messages, userMsg].map((m) => ({ role: m.role, content: m.content })),
+            notes: notesOrContent,
+            action,
+          }
+        : {
+            messages: [...messages, userMsg].map((m) => ({ role: m.role, content: m.content })),
+            noteContent: notesOrContent,
+            noteTitle,
+            action,
+          };
+
       try {
         const response = await fetch(CHAT_URL, {
           method: "POST",
@@ -51,15 +71,7 @@ export function useAIChat() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
-          body: JSON.stringify({
-            messages: [...messages, userMsg].map((m) => ({
-              role: m.role,
-              content: m.content,
-            })),
-            noteContent,
-            noteTitle,
-            action,
-          }),
+          body: JSON.stringify(body),
         });
 
         if (!response.ok) {

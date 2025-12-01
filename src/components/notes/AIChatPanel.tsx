@@ -14,24 +14,39 @@ import {
   Copy,
   Check,
   Loader2,
+  Combine,
+  GitCompare,
+  TrendingUp,
+  FolderOpen,
+  FilePlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Note } from "@/hooks/useNotes";
-import { useAIChat } from "@/hooks/useAIChat";
+import { useAIChat, NoteInput } from "@/hooks/useAIChat";
 import { toast } from "sonner";
 
 interface AIChatPanelProps {
   isOpen: boolean;
   onClose: () => void;
   note: Note | null;
+  notes?: Note[]; // For multi-note operations
+  folderName?: string; // Name of folder when working with multiple notes
   onApplyContent?: (content: string) => void;
+  onCreateNote?: (title: string, content: string) => void;
 }
 
-const quickActions = [
+const singleNoteActions = [
   { icon: Wand2, label: "Improve writing", action: "improve", prompt: "Improve the writing in this note" },
   { icon: FileText, label: "Summarize", action: "summarize", prompt: "Summarize this note concisely" },
   { icon: ListChecks, label: "Extract tasks", action: "tasks", prompt: "Extract action items from this note" },
   { icon: Lightbulb, label: "Generate ideas", action: "ideas", prompt: "Generate related ideas for this note" },
+];
+
+const multiNoteActions = [
+  { icon: Combine, label: "Consolidate", action: "consolidate", prompt: "Consolidate these notes into one master document" },
+  { icon: GitCompare, label: "Compare", action: "compare", prompt: "Compare these notes and highlight differences" },
+  { icon: TrendingUp, label: "Find patterns", action: "patterns", prompt: "Identify patterns across these notes" },
+  { icon: FileText, label: "Summary", action: "multi-summarize", prompt: "Create a summary of all these notes" },
 ];
 
 // Code block component with copy button
@@ -75,16 +90,27 @@ function CodeBlock({ language, children }: { language: string; children: string 
   );
 }
 
-export function AIChatPanel({ isOpen, onClose, note, onApplyContent }: AIChatPanelProps) {
+export function AIChatPanel({ 
+  isOpen, 
+  onClose, 
+  note, 
+  notes,
+  folderName,
+  onApplyContent,
+  onCreateNote 
+}: AIChatPanelProps) {
   const [input, setInput] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const { messages, isLoading, sendMessage, clearMessages } = useAIChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Clear messages when note changes
+  const isMultiNote = notes && notes.length > 1;
+  const quickActions = isMultiNote ? multiNoteActions : singleNoteActions;
+
+  // Clear messages when note/notes change
   useEffect(() => {
     clearMessages();
-  }, [note?.id]);
+  }, [note?.id, notes?.length]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -96,10 +122,18 @@ export function AIChatPanel({ isOpen, onClose, note, onApplyContent }: AIChatPan
     if (!message) return;
     
     setInput("");
-    await sendMessage(message, note?.content || "", note?.title || "", action);
+    
+    if (isMultiNote && notes) {
+      // Multi-note: send array of notes
+      const noteInputs: NoteInput[] = notes.map(n => ({ title: n.title, content: n.content }));
+      await sendMessage(message, noteInputs, undefined, action);
+    } else if (note) {
+      // Single note: send content and title
+      await sendMessage(message, note.content || "", note.title || "", action);
+    }
   };
 
-  const handleQuickAction = (action: typeof quickActions[0]) => {
+  const handleQuickAction = (action: typeof singleNoteActions[0]) => {
     handleSend(action.prompt, action.action);
   };
 
@@ -111,11 +145,28 @@ export function AIChatPanel({ isOpen, onClose, note, onApplyContent }: AIChatPan
   };
 
   const handleApply = (content: string) => {
-    if (onApplyContent) {
+    if (onApplyContent && !isMultiNote) {
       onApplyContent(content);
       toast.success("Applied to note");
     }
   };
+
+  const handleCreateNewNote = (content: string) => {
+    if (onCreateNote) {
+      // Generate title from first line or action
+      const firstLine = content.split('\n')[0].replace(/^#*\s*/, '').slice(0, 50);
+      const title = firstLine || "AI Generated Note";
+      onCreateNote(title, content);
+      toast.success("Created new note");
+    }
+  };
+
+  // Context description
+  const contextText = isMultiNote && notes
+    ? `Working with ${notes.length} notes${folderName ? ` in "${folderName}"` : ""}`
+    : note
+    ? `Working with: ${note.title || "Untitled"}`
+    : "No note selected";
 
   return (
     <>
@@ -156,18 +207,39 @@ export function AIChatPanel({ isOpen, onClose, note, onApplyContent }: AIChatPan
         </div>
 
         {/* Context Badge */}
-        {note && (
-          <div className="px-4 py-3 border-b border-border">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="px-4 py-3 border-b border-border">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            {isMultiNote ? (
+              <FolderOpen className="h-3.5 w-3.5" />
+            ) : (
               <FileText className="h-3.5 w-3.5" />
-              <span className="truncate">Working with: {note.title || "Untitled"}</span>
-            </div>
+            )}
+            <span className="truncate">{contextText}</span>
           </div>
-        )}
+          {isMultiNote && notes && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {notes.slice(0, 5).map((n) => (
+                <span 
+                  key={n.id} 
+                  className="text-[10px] px-1.5 py-0.5 bg-muted rounded-md text-muted-foreground truncate max-w-[100px]"
+                >
+                  {n.title || "Untitled"}
+                </span>
+              ))}
+              {notes.length > 5 && (
+                <span className="text-[10px] px-1.5 py-0.5 bg-muted rounded-md text-muted-foreground">
+                  +{notes.length - 5} more
+                </span>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Quick Actions */}
         <div className="px-4 py-3 border-b border-border">
-          <p className="text-xs text-muted-foreground mb-2">Quick actions</p>
+          <p className="text-xs text-muted-foreground mb-2">
+            {isMultiNote ? "Multi-note actions" : "Quick actions"}
+          </p>
           <div className="grid grid-cols-2 gap-2">
             {quickActions.map((action) => (
               <button
@@ -200,7 +272,10 @@ export function AIChatPanel({ isOpen, onClose, note, onApplyContent }: AIChatPan
                 How can I help?
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Ask me to edit, summarize, or generate content
+                {isMultiNote 
+                  ? "Consolidate, compare, or analyze multiple notes"
+                  : "Ask me to edit, summarize, or generate content"
+                }
               </p>
             </div>
           ) : (
@@ -261,7 +336,7 @@ export function AIChatPanel({ isOpen, onClose, note, onApplyContent }: AIChatPan
                         )}
                         Copy
                       </Button>
-                      {onApplyContent && (
+                      {!isMultiNote && onApplyContent && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -269,6 +344,17 @@ export function AIChatPanel({ isOpen, onClose, note, onApplyContent }: AIChatPan
                           onClick={() => handleApply(message.content)}
                         >
                           Apply to Note
+                        </Button>
+                      )}
+                      {onCreateNote && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs text-[hsl(var(--ai-accent))] hover:text-[hsl(var(--ai-accent))] hover:bg-[hsl(var(--ai-accent))]/10"
+                          onClick={() => handleCreateNewNote(message.content)}
+                        >
+                          <FilePlus className="h-3 w-3 mr-1" />
+                          Create Note
                         </Button>
                       )}
                     </div>

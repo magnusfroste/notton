@@ -15,6 +15,7 @@ import {
   Folder,
   MoreHorizontal,
   UserCircle,
+  Sparkles,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useProfile } from "@/hooks/useProfile";
@@ -56,6 +57,7 @@ interface FolderSidebarProps {
   onCreateFolder: (name: string, icon?: string) => Promise<any>;
   onDeleteFolder: (id: string) => Promise<boolean>;
   onSignOut: () => Promise<void>;
+  onOpenFolderAI?: (folderId: string) => void;
 }
 
 export function FolderSidebar({
@@ -67,6 +69,7 @@ export function FolderSidebar({
   onCreateFolder,
   onDeleteFolder,
   onSignOut,
+  onOpenFolderAI,
 }: FolderSidebarProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -227,7 +230,15 @@ export function FolderSidebar({
                       <MoreHorizontal className="h-3.5 w-3.5" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end">
+                    {onOpenFolderAI && folder.count > 0 && (
+                      <DropdownMenuItem
+                        onClick={() => onOpenFolderAI(folder.id)}
+                      >
+                        <Sparkles className="h-3.5 w-3.5 mr-2 text-[hsl(var(--ai-accent))]" />
+                        AI Assistant
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem
                       className="text-destructive"
                       onClick={() => onDeleteFolder(folder.id)}
