@@ -79,7 +79,7 @@ export function NoteEditor({
   const [rawMarkdown, setRawMarkdown] = useState(note?.content || "");
   const pdfContentRef = useRef<HTMLDivElement>(null);
   
-  const { editorMode, updatePreferences } = useProfile();
+  const { editorMode, showLineNumbers, updatePreferences } = useProfile();
 
   const debouncedUpdateContent = useDebouncedCallback(
     (content: string) => {
@@ -355,10 +355,29 @@ export function NoteEditor({
           </div>
         )}
         {!isTrashView && editorMode === 'markdown' && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <FileCode className="h-4 w-4" />
-            <span>Markdown Mode</span>
-            <span className="text-xs opacity-60">(⌘/Ctrl + / to switch)</span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <FileCode className="h-4 w-4" />
+              <span>Markdown Mode</span>
+            </div>
+            <div className="w-px h-4 bg-border mx-1" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => updatePreferences.mutate({ show_line_numbers: !showLineNumbers })}
+                  className={cn(
+                    "h-7 px-2 text-xs text-muted-foreground hover:text-foreground",
+                    showLineNumbers && "bg-muted text-foreground"
+                  )}
+                >
+                  <span className="font-mono mr-1.5 text-[10px] opacity-60">123</span>
+                  Lines
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Toggle line numbers</TooltipContent>
+            </Tooltip>
           </div>
         )}
         {isTrashView && (
@@ -571,7 +590,15 @@ export function NoteEditor({
                     lineHeight: "1.7",
                   },
                   ".cm-gutters": {
-                    display: "none",
+                    backgroundColor: "transparent",
+                    borderRight: showLineNumbers ? "1px solid hsl(var(--border))" : "none",
+                    color: "hsl(var(--muted-foreground))",
+                    paddingRight: showLineNumbers ? "8px" : "0",
+                  },
+                  ".cm-lineNumbers .cm-gutterElement": {
+                    padding: "0 8px 0 0",
+                    minWidth: "40px",
+                    fontSize: "12px",
                   },
                   ".cm-cursor": {
                     borderLeftColor: "hsl(var(--foreground))",
@@ -594,9 +621,9 @@ export function NoteEditor({
               placeholder="# Start writing in markdown..."
               className="min-h-[calc(100vh-280px)] [&_.cm-editor]:bg-transparent [&_.cm-scroller]:overflow-visible"
               basicSetup={{
-                lineNumbers: false,
+                lineNumbers: showLineNumbers,
                 foldGutter: false,
-                highlightActiveLineGutter: false,
+                highlightActiveLineGutter: showLineNumbers,
                 dropCursor: true,
                 allowMultipleSelections: true,
                 indentOnInput: true,
