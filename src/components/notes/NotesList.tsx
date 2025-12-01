@@ -16,6 +16,13 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -45,6 +52,7 @@ interface DraggableNoteItemProps {
   onDuplicateNote?: (note: Note) => void;
   onDeleteNote?: (note: Note) => void;
   onMoveNote?: (noteId: string, folderId: string | null) => void;
+  onMoveSelected?: (folderId: string | null) => void;
   folders: Folder[];
   isTrashView?: boolean;
 }
@@ -59,9 +67,20 @@ function DraggableNoteItem({
   onDuplicateNote,
   onDeleteNote,
   onMoveNote,
+  onMoveSelected,
   folders,
   isTrashView,
 }: DraggableNoteItemProps) {
+  const isNoteSelected = selectedNotes.has(note.id);
+  const shouldBatchMove = isSelectMode && isNoteSelected && selectedNotes.size > 1;
+
+  const handleMoveToFolder = (folderId: string | null) => {
+    if (shouldBatchMove) {
+      onMoveSelected?.(folderId);
+    } else {
+      onMoveNote?.(note.id, folderId);
+    }
+  };
   const {
     attributes,
     listeners,
@@ -163,12 +182,12 @@ function DraggableNoteItem({
             <ContextMenuSub>
               <ContextMenuSubTrigger>
                 <FolderInput className="h-4 w-4 mr-2" />
-                Move to folder
+                {shouldBatchMove ? `Move ${selectedNotes.size} notes` : "Move to folder"}
               </ContextMenuSubTrigger>
               <ContextMenuSubContent className="w-48 bg-popover">
                 <ContextMenuItem
-                  onClick={() => onMoveNote?.(note.id, null)}
-                  className={!note.folder_id ? "bg-muted" : ""}
+                  onClick={() => handleMoveToFolder(null)}
+                  className={!shouldBatchMove && !note.folder_id ? "bg-muted" : ""}
                 >
                   <FolderIcon className="h-4 w-4 mr-2" />
                   No Folder
@@ -177,8 +196,8 @@ function DraggableNoteItem({
                 {folders.map((folder) => (
                   <ContextMenuItem
                     key={folder.id}
-                    onClick={() => onMoveNote?.(note.id, folder.id)}
-                    className={note.folder_id === folder.id ? "bg-muted" : ""}
+                    onClick={() => handleMoveToFolder(folder.id)}
+                    className={!shouldBatchMove && note.folder_id === folder.id ? "bg-muted" : ""}
                   >
                     <FolderIcon className="h-4 w-4 mr-2" />
                     {folder.name}
@@ -290,6 +309,15 @@ export function NotesList({
     if (selectedNotes.size === 0) return;
     const selected = notes.filter((n) => selectedNotes.has(n.id));
     selected.forEach((n) => onDeleteNote?.(n));
+    clearSelection();
+  };
+
+  const handleMoveSelected = (folderId: string | null) => {
+    if (selectedNotes.size === 0) return;
+    selectedNotes.forEach((noteId) => {
+      onMoveNote?.(noteId, folderId);
+    });
+    toast.success(`Moved ${selectedNotes.size} note${selectedNotes.size > 1 ? "s" : ""}`);
     clearSelection();
   };
 
@@ -408,6 +436,7 @@ export function NotesList({
                 onDuplicateNote={onDuplicateNote}
                 onDeleteNote={onDeleteNote}
                 onMoveNote={onMoveNote}
+                onMoveSelected={handleMoveSelected}
                 folders={folders}
                 isTrashView={isTrashView}
               />
@@ -438,6 +467,36 @@ export function NotesList({
               <Sparkles className="h-3.5 w-3.5 mr-1.5" />
               AI
             </Button>
+          )}
+          {onMoveNote && folders.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-3 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <FolderInput className="h-3.5 w-3.5 mr-1.5" />
+                  Move
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="w-48">
+                <DropdownMenuItem onClick={() => handleMoveSelected(null)}>
+                  <FolderIcon className="h-4 w-4 mr-2" />
+                  No Folder
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {folders.map((folder) => (
+                  <DropdownMenuItem
+                    key={folder.id}
+                    onClick={() => handleMoveSelected(folder.id)}
+                  >
+                    <FolderIcon className="h-4 w-4 mr-2" />
+                    {folder.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           <Button
             variant="ghost"
