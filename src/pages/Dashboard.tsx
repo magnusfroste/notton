@@ -472,6 +472,7 @@ const Dashboard = () => {
                 onUpdateNote={handleUpdateNote}
                 onDeleteNote={handleDeleteNote}
                 onRestoreNote={handleRestoreNote}
+                onDuplicateNote={selectedNote ? () => handleDuplicateNote(selectedNote) : undefined}
                 isTrashView={selectedFolder === "trash"}
               />
             )}
@@ -552,6 +553,7 @@ const Dashboard = () => {
           onUpdateNote={handleUpdateNote}
           onDeleteNote={handleDeleteNote}
           onRestoreNote={handleRestoreNote}
+          onDuplicateNote={selectedNote ? () => handleDuplicateNote(selectedNote) : undefined}
           isTrashView={selectedFolder === "trash"}
         />
 

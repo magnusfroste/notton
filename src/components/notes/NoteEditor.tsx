@@ -36,6 +36,9 @@ import {
   Folder as FolderIcon,
   FileCode,
   Eye,
+  Info,
+  Copy,
+  Printer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -50,6 +53,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Note, Folder } from "@/hooks/useNotes";
 import { useProfile } from "@/hooks/useProfile";
 import { format } from "date-fns";
@@ -63,6 +72,7 @@ interface NoteEditorProps {
   onUpdateNote: (id: string, updates: Partial<Pick<Note, "title" | "content" | "folder_id">>) => Promise<void>;
   onDeleteNote: () => Promise<void>;
   onRestoreNote: () => Promise<void>;
+  onDuplicateNote?: () => void;
   isTrashView?: boolean;
 }
 
@@ -73,13 +83,20 @@ export function NoteEditor({
   onUpdateNote,
   onDeleteNote,
   onRestoreNote,
+  onDuplicateNote,
   isTrashView,
 }: NoteEditorProps) {
   const [title, setTitle] = useState(note?.title || "");
   const [rawMarkdown, setRawMarkdown] = useState(note?.content || "");
+  const [showNoteInfo, setShowNoteInfo] = useState(false);
   const pdfContentRef = useRef<HTMLDivElement>(null);
   
   const { editorMode, showLineNumbers, updatePreferences } = useProfile();
+
+  // Calculate word and character count
+  const content = rawMarkdown || note?.content || "";
+  const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
+  const charCount = content.length;
 
   const debouncedUpdateContent = useDebouncedCallback(
     (content: string) => {
@@ -237,6 +254,17 @@ export function NoteEditor({
       });
       toast.success("Note exported as PDF");
     }
+  };
+
+  const copyAsMarkdown = async () => {
+    const markdown = rawMarkdown || note.content || "";
+    const content = `# ${note.title || "Untitled"}\n\n${markdown}`;
+    await navigator.clipboard.writeText(content);
+    toast.success("Copied to clipboard");
+  };
+
+  const printNote = () => {
+    window.print();
   };
 
   const addLink = () => {
@@ -527,13 +555,39 @@ export function NoteEditor({
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-foreground"
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                    title="More actions"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-popover">
+                  <DropdownMenuItem onClick={() => setShowNoteInfo(true)}>
+                    <Info className="h-4 w-4 mr-2" />
+                    Note Info
+                  </DropdownMenuItem>
+                  {onDuplicateNote && (
+                    <DropdownMenuItem onClick={onDuplicateNote}>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Duplicate Note
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={copyAsMarkdown}>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy as Markdown
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={printNote}>
+                    <Printer className="h-4 w-4 mr-2" />
+                    Print Note
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </>
           )}
         </div>
@@ -647,6 +701,35 @@ export function NoteEditor({
           )}
         </div>
       </div>
+
+      {/* Note Info Dialog */}
+      <Dialog open={showNoteInfo} onOpenChange={setShowNoteInfo}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Note Info</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-muted-foreground">Created</p>
+                <p className="font-medium">{format(new Date(note.created_at), "MMM d, yyyy 'at' h:mm a")}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Last Modified</p>
+                <p className="font-medium">{format(new Date(note.updated_at), "MMM d, yyyy 'at' h:mm a")}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Words</p>
+                <p className="font-medium">{wordCount.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Characters</p>
+                <p className="font-medium">{charCount.toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
