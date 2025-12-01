@@ -231,7 +231,7 @@ export function FolderSidebar({
     <aside
       className={cn(
         "flex flex-col h-full border-r border-sidebar-border bg-sidebar transition-all duration-300 ease-in-out",
-        isCollapsed ? "w-16" : "w-56"
+        isCollapsed ? "w-16" : "w-full md:w-56"
       )}
     >
       {/* Header */}

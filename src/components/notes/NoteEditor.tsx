@@ -110,7 +110,7 @@ export function NoteEditor({
         placeholder: "Start writing...",
       }),
       Underline,
-      Link.configure({
+      Link.extend({ name: 'customLink' }).configure({
         openOnClick: false,
         HTMLAttributes: {
           class: "text-primary underline cursor-pointer",
@@ -123,6 +123,7 @@ export function NoteEditor({
       Markdown.configure({
         html: false,
         transformPastedText: true,
+        linkify: false, // Prevent markdown from adding its own link extension
       }),
     ],
     content: note?.content || "",

@@ -318,7 +318,7 @@ export function NotesList({
   };
 
   return (
-    <div className="flex flex-col w-72 h-full border-r border-border bg-card relative">
+    <div className="flex flex-col w-full md:w-72 h-full border-r border-border bg-card relative">
       {/* Header with Search */}
       <div className="p-3 space-y-3">
         {/* Big Search Bar */}
