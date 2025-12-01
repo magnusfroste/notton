@@ -89,9 +89,13 @@ export function NoteEditor({
   const [title, setTitle] = useState(note?.title || "");
   const [rawMarkdown, setRawMarkdown] = useState(note?.content || "");
   const [showNoteInfo, setShowNoteInfo] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
   const pdfContentRef = useRef<HTMLDivElement>(null);
-  
+  const noteIdRef = useRef<string | null>(note?.id || null);
+  const previousNoteIdRef = useRef<string | null>(null);
   const { editorMode, showLineNumbers, fontSize, updatePreferences } = useProfile();
+  const rawMarkdownRef = useRef(rawMarkdown);
+  const prevEditorModeRef = useRef(editorMode);
 
   // Font size class mapping
   const fontSizeClasses = {
@@ -113,19 +117,23 @@ export function NoteEditor({
   const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
   const charCount = content.length;
 
+  // Pass noteId at call time to avoid stale closure issues
   const debouncedUpdateContent = useDebouncedCallback(
-    (content: string) => {
-      if (note) {
-        onUpdateNote(note.id, { content });
+    (noteId: string, content: string) => {
+      // Only save if we're still on the same note
+      if (noteIdRef.current === noteId) {
+        onUpdateNote(noteId, { content });
+        setIsDirty(false);
       }
     },
     500
   );
 
   const debouncedUpdateTitle = useDebouncedCallback(
-    (newTitle: string) => {
-      if (note) {
-        onUpdateNote(note.id, { title: newTitle });
+    (noteId: string, newTitle: string) => {
+      // Only save if we're still on the same note
+      if (noteIdRef.current === noteId) {
+        onUpdateNote(noteId, { title: newTitle });
       }
     },
     500
@@ -166,43 +174,83 @@ export function NoteEditor({
       },
     },
     onUpdate: ({ editor }) => {
+      if (!note) return;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const markdown = (editor.storage as any).markdown.getMarkdown();
-      debouncedUpdateContent(markdown);
+      setIsDirty(true);
+      debouncedUpdateContent(note.id, markdown);
     },
   });
 
-  // Sync content when note changes
+  // Flush pending saves and sync content when switching notes
   useEffect(() => {
+    const isNewNote = note?.id !== previousNoteIdRef.current;
+    
+    // Only run logic when actually switching to a different note
+    if (!isNewNote) {
+      // Just update editable state if needed
+      if (editor) {
+        editor.setEditable(!isTrashView);
+      }
+      return;
+    }
+    
+    // Switching notes - flush any pending saves for the old note
+    if (previousNoteIdRef.current) {
+      debouncedUpdateContent.flush();
+      debouncedUpdateTitle.flush();
+    }
+    
+    // Update refs
+    previousNoteIdRef.current = note?.id || null;
+    noteIdRef.current = note?.id || null;
+    
+    // Reset content for the new note
     if (note) {
       setRawMarkdown(note.content || "");
       setTitle(note.title || "");
+      setIsDirty(false);
       
       if (editor) {
-        const currentContent = editor.getHTML();
-        if (currentContent !== note.content) {
-          editor.commands.setContent(note.content || "");
-        }
+        editor.commands.setContent(note.content || "");
         editor.setEditable(!isTrashView);
       }
     }
-  }, [note?.id, note?.content, note?.title, editor, isTrashView]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [note?.id, editor, isTrashView]);
 
-  // Sync raw markdown when switching modes
+  // Keep ref synced with latest markdown value for mode transitions
   useEffect(() => {
-    if (editorMode === 'markdown' && editor) {
+    rawMarkdownRef.current = rawMarkdown;
+  }, [rawMarkdown]);
+
+  // Sync content only when switching between rich and markdown modes
+  useEffect(() => {
+    if (!editor) return;
+
+    const prevMode = prevEditorModeRef.current;
+    if (prevMode === editorMode) return;
+
+    if (editorMode === 'markdown') {
+      // Capture current rich-text content before entering markdown mode
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const markdown = (editor.storage as any).markdown.getMarkdown();
       setRawMarkdown(markdown);
-    } else if (editorMode === 'rich' && editor && note) {
-      editor.commands.setContent(rawMarkdown || note.content || "");
+      rawMarkdownRef.current = markdown;
+    } else if (editorMode === 'rich') {
+      // Restore markdown content back into the rich editor when leaving markdown mode
+      const markdownContent = rawMarkdownRef.current ?? note?.content ?? "";
+      editor.commands.setContent(markdownContent || "");
     }
-  }, [editorMode, editor, note, rawMarkdown]);
+
+    prevEditorModeRef.current = editorMode;
+  }, [editorMode, editor, note]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!note) return;
     const newTitle = e.target.value;
     setTitle(newTitle);
-    debouncedUpdateTitle(newTitle);
+    debouncedUpdateTitle(note.id, newTitle);
   };
 
   const toggleEditorMode = useCallback(() => {
@@ -637,8 +685,10 @@ export function NoteEditor({
             <CodeMirror
               value={rawMarkdown}
               onChange={(value) => {
+                if (!note) return;
                 setRawMarkdown(value);
-                debouncedUpdateContent(value);
+                setIsDirty(true);
+                debouncedUpdateContent(note.id, value);
               }}
               editable={!isTrashView}
               extensions={[

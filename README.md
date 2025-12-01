@@ -1,73 +1,144 @@
-# Welcome to your Lovable project
+# Notton AI ✨
 
-## Project info
+**Pure magic for your productivity.**
 
-**URL**: https://lovable.dev/projects/3e53347c-45c1-4688-aba4-a8da8c027ca8
+A cloud-based, AI-powered note-taking app inspired by Apple Notes. Organize, search, and chat with your content—being productive has never been easier.
 
-## How can I edit this code?
+🌐 **Live App**: [notton.app](https://notton.app)
 
-There are several ways of editing your application.
+---
 
-**Use Lovable**
+## Features
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/3e53347c-45c1-4688-aba4-a8da8c027ca8) and start prompting.
+### 📝 Rich Text Editing
+- Full Markdown support with headers, bold, italic, lists, and checklists
+- Clean, distraction-free writing experience
+- Real-time autosave
 
-Changes made via Lovable will be committed automatically to this repo.
+### 📁 Smart Organization
+- Create custom folders to organize your notes
+- Drag-and-drop notes between folders
+- "All Notes" and "Recently Deleted" system folders
+- Restore deleted notes with ease
 
-**Use your preferred IDE**
+### 🤖 AI Sidepanel Assistant
+The AI assistant lives in a slide-out panel and helps with:
+- **Improve Writing** — Enhance grammar, clarity, and flow
+- **Summarize** — Get concise bullet-point summaries
+- **Extract Tasks** — Pull action items into a checklist
+- **Generate Ideas** — Brainstorm related concepts
+- **Consolidate Notes** — Merge multiple notes into one master document
+- **Compare Notes** — Identify similarities and differences
+- **Find Patterns** — Discover trends across your notes
+- **Web Search** — Search the web and create notes from results
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 🔍 AI-Powered Search
+Find anything instantly with semantic search across all your notes.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### 📱 Cross-Platform
+- Progressive Web App (PWA) — install on any device
+- Responsive design for desktop, tablet, and mobile
+- Offline support with automatic sync when back online
 
-Follow these steps:
+### 🎨 Themes
+- Dark and light mode
+- Clean, modern UI with smooth animations
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | React, TypeScript, Vite |
+| Styling | Tailwind CSS, shadcn/ui |
+| Backend | Supabase (Auth, Database, Edge Functions) |
+| AI | OpenAI / xAI (configurable) |
+| State | React Query, Context API |
+| DnD | @dnd-kit |
+
+---
+
+## Getting Started
+
+### Prerequisites
+- Node.js 18+ (recommend using [nvm](https://github.com/nvm-sh/nvm))
+- A Supabase project
+
+### Local Development
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Clone the repository
+git clone https://github.com/magnusfroste/notton.git
+cd notton
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Install dependencies
+npm install
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your Supabase credentials
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Environment Variables
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key
+```
 
-**Use GitHub Codespaces**
+---
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Project Structure
 
-## What technologies are used for this project?
+```
+src/
+├── components/       # React components
+│   ├── notes/        # Note editor, list, folder sidebar
+│   ├── admin/        # Admin panel components
+│   └── ui/           # shadcn/ui components
+├── contexts/         # React context providers
+├── hooks/            # Custom React hooks
+├── integrations/     # Supabase client & types
+├── pages/            # Route pages
+└── lib/              # Utilities
 
-This project is built with:
+supabase/
+├── functions/        # Edge Functions (AI chat, admin)
+└── config.toml       # Supabase configuration
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+---
 
-## How can I deploy this project?
+## Keyboard Shortcuts
 
-Simply open [Lovable](https://lovable.dev/projects/3e53347c-45c1-4688-aba4-a8da8c027ca8) and click on Share -> Publish.
+| Shortcut | Action |
+|----------|--------|
+| `Cmd/Ctrl + N` | Create new note |
+| `↑ / ↓` | Navigate notes list |
 
-## Can I connect a custom domain to my Lovable project?
+---
 
-Yes, you can!
+## Deployment
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+The app is deployed via [Lovable](https://lovable.dev) with a custom domain at [notton.app](https://notton.app).
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+To deploy your own instance:
+1. Push to the connected GitHub repository
+2. Lovable auto-deploys on push
+3. Or use `npm run build` and deploy the `dist/` folder to any static host
+
+---
+
+## License
+
+MIT
+
+---
+
+<p align="center">
+  <strong>Notton AI</strong> — The new kid on the block 🚀
+</p>
