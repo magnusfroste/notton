@@ -37,6 +37,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useDroppable } from "@dnd-kit/core";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   FileText,
@@ -58,6 +59,110 @@ interface FolderSidebarProps {
   onDeleteFolder: (id: string) => Promise<boolean>;
   onSignOut: () => Promise<void>;
   onOpenFolderAI?: (folderId: string) => void;
+}
+
+interface DroppableFolderProps {
+  folder: FolderType;
+  selectedFolder: string;
+  onSelectFolder: (id: string) => void;
+  isCollapsed: boolean;
+  onOpenFolderAI?: (folderId: string) => void;
+  onDeleteFolder?: (id: string) => Promise<boolean>;
+  isUserFolder?: boolean;
+}
+
+function DroppableFolder({
+  folder,
+  selectedFolder,
+  onSelectFolder,
+  isCollapsed,
+  onOpenFolderAI,
+  onDeleteFolder,
+  isUserFolder,
+}: DroppableFolderProps) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: `folder-${folder.id}`,
+    data: { type: "folder", folderId: folder.id === "all" ? null : folder.id },
+  });
+
+  const Icon = iconMap[folder.icon] || (isUserFolder ? Folder : FileText);
+
+  if (isUserFolder) {
+    return (
+      <div
+        ref={setNodeRef}
+        className={cn(
+          "group w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150",
+          isOver && "bg-primary/20 ring-2 ring-primary/50",
+          selectedFolder === folder.id
+            ? "bg-sidebar-accent text-sidebar-accent-foreground"
+            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+        )}
+      >
+        <button
+          onClick={() => onSelectFolder(folder.id)}
+          className="flex-1 flex items-center gap-3"
+        >
+          <Icon className="h-4 w-4 shrink-0" />
+          {!isCollapsed && (
+            <>
+              <span className="flex-1 text-left truncate">{folder.name}</span>
+              <span className="text-xs text-sidebar-foreground/40">{folder.count}</span>
+            </>
+          )}
+        </button>
+        {!isCollapsed && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 opacity-0 group-hover:opacity-100 text-sidebar-foreground/40 hover:text-sidebar-foreground"
+              >
+                <MoreHorizontal className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-popover">
+              {onOpenFolderAI && folder.count > 0 && (
+                <DropdownMenuItem onClick={() => onOpenFolderAI(folder.id)}>
+                  <Sparkles className="h-3.5 w-3.5 mr-2 text-[hsl(var(--ai-accent))]" />
+                  AI Assistant
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem
+                className="text-destructive"
+                onClick={() => onDeleteFolder?.(folder.id)}
+              >
+                Delete Folder
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      ref={setNodeRef}
+      onClick={() => onSelectFolder(folder.id)}
+      className={cn(
+        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150",
+        isOver && folder.id !== "trash" && "bg-primary/20 ring-2 ring-primary/50",
+        selectedFolder === folder.id
+          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+      )}
+    >
+      <Icon className="h-4 w-4 shrink-0" />
+      {!isCollapsed && (
+        <>
+          <span className="flex-1 text-left truncate">{folder.name}</span>
+          <span className="text-xs text-sidebar-foreground/40">{folder.count}</span>
+        </>
+      )}
+    </button>
+  );
 }
 
 export function FolderSidebar({
@@ -126,29 +231,15 @@ export function FolderSidebar({
 
       {/* System Folders */}
       <div className="px-2 space-y-0.5">
-        {systemFolders.map((folder) => {
-          const Icon = iconMap[folder.icon] || FileText;
-          return (
-            <button
-              key={folder.id}
-              onClick={() => onSelectFolder(folder.id)}
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150",
-                selectedFolder === folder.id
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-              )}
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              {!isCollapsed && (
-                <>
-                  <span className="flex-1 text-left truncate">{folder.name}</span>
-                  <span className="text-xs text-sidebar-foreground/40">{folder.count}</span>
-                </>
-              )}
-            </button>
-          );
-        })}
+        {systemFolders.map((folder) => (
+          <DroppableFolder
+            key={folder.id}
+            folder={folder}
+            selectedFolder={selectedFolder}
+            onSelectFolder={onSelectFolder}
+            isCollapsed={isCollapsed}
+          />
+        ))}
       </div>
 
       {/* Divider */}
@@ -195,62 +286,18 @@ export function FolderSidebar({
             </Dialog>
           </div>
         )}
-        {userFolders.map((folder) => {
-          const Icon = iconMap[folder.icon] || Folder;
-          return (
-            <div
-              key={folder.id}
-              className={cn(
-                "group w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150",
-                selectedFolder === folder.id
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-              )}
-            >
-              <button
-                onClick={() => onSelectFolder(folder.id)}
-                className="flex-1 flex items-center gap-3"
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                {!isCollapsed && (
-                  <>
-                    <span className="flex-1 text-left truncate">{folder.name}</span>
-                    <span className="text-xs text-sidebar-foreground/40">{folder.count}</span>
-                  </>
-                )}
-              </button>
-              {!isCollapsed && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100 text-sidebar-foreground/40 hover:text-sidebar-foreground"
-                    >
-                      <MoreHorizontal className="h-3.5 w-3.5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                    {onOpenFolderAI && folder.count > 0 && (
-                      <DropdownMenuItem
-                        onClick={() => onOpenFolderAI(folder.id)}
-                      >
-                        <Sparkles className="h-3.5 w-3.5 mr-2 text-[hsl(var(--ai-accent))]" />
-                        AI Assistant
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem
-                      className="text-destructive"
-                      onClick={() => onDeleteFolder(folder.id)}
-                    >
-                      Delete Folder
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-            </div>
-          );
-        })}
+        {userFolders.map((folder) => (
+          <DroppableFolder
+            key={folder.id}
+            folder={folder}
+            selectedFolder={selectedFolder}
+            onSelectFolder={onSelectFolder}
+            isCollapsed={isCollapsed}
+            onOpenFolderAI={onOpenFolderAI}
+            onDeleteFolder={onDeleteFolder}
+            isUserFolder
+          />
+        ))}
       </div>
 
       {/* Footer - Trash, Profile, Theme Toggle & Sign Out */}

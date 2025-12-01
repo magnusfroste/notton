@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Search, Plus, SortDesc, Upload, Copy, Trash2, FolderInput, Folder as FolderIcon, CheckSquare, Square, X, Sparkles } from "lucide-react";
+import { Search, Plus, SortDesc, Upload, Copy, Trash2, FolderInput, Folder as FolderIcon, CheckSquare, X, Sparkles, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Note, Folder } from "@/hooks/useNotes";
@@ -16,6 +16,8 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface NotesListProps {
   notes: Note[];
@@ -31,6 +33,172 @@ interface NotesListProps {
   folders?: Folder[];
   isTrashView?: boolean;
   onOpenAIWithNotes?: (notes: Note[]) => void;
+}
+
+interface DraggableNoteItemProps {
+  note: Note;
+  selectedNote: Note | null;
+  isSelectMode: boolean;
+  selectedNotes: Set<string>;
+  onSelectNote: (note: Note) => void;
+  toggleNoteSelection: (noteId: string) => void;
+  onDuplicateNote?: (note: Note) => void;
+  onDeleteNote?: (note: Note) => void;
+  onMoveNote?: (noteId: string, folderId: string | null) => void;
+  folders: Folder[];
+  isTrashView?: boolean;
+}
+
+function DraggableNoteItem({
+  note,
+  selectedNote,
+  isSelectMode,
+  selectedNotes,
+  onSelectNote,
+  toggleNoteSelection,
+  onDuplicateNote,
+  onDeleteNote,
+  onMoveNote,
+  folders,
+  isTrashView,
+}: DraggableNoteItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ 
+    id: note.id,
+    disabled: isSelectMode || isTrashView,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <div
+          ref={setNodeRef}
+          style={style}
+          className={cn(
+            "w-full text-left p-3 rounded-xl transition-all duration-150 flex items-start gap-2",
+            isDragging && "opacity-50 z-50 shadow-lg",
+            selectedNote?.id === note.id && !isSelectMode
+              ? "bg-primary/15 border border-primary/20"
+              : isSelectMode && selectedNotes.has(note.id)
+              ? "bg-[hsl(var(--ai-accent))]/10 border border-[hsl(var(--ai-accent))]/20"
+              : "hover:bg-muted/50 border border-transparent"
+          )}
+        >
+          {/* Drag handle */}
+          {!isSelectMode && !isTrashView && (
+            <div
+              {...attributes}
+              {...listeners}
+              className="pt-1 shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground touch-none"
+            >
+              <GripVertical className="h-4 w-4" />
+            </div>
+          )}
+          
+          {/* Checkbox in select mode */}
+          {isSelectMode && (
+            <div
+              className="pt-0.5 shrink-0"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleNoteSelection(note.id);
+              }}
+            >
+              <Checkbox
+                checked={selectedNotes.has(note.id)}
+                className="h-4 w-4 border-muted-foreground/40 data-[state=checked]:bg-[hsl(var(--ai-accent))] data-[state=checked]:border-[hsl(var(--ai-accent))]"
+              />
+            </div>
+          )}
+          <button
+            onClick={() => {
+              if (isSelectMode) {
+                toggleNoteSelection(note.id);
+              } else {
+                onSelectNote(note);
+              }
+            }}
+            className="flex-1 text-left min-w-0"
+          >
+            <h3
+              className={cn(
+                "font-medium text-sm truncate",
+                selectedNote?.id === note.id
+                  ? "text-foreground"
+                  : "text-foreground/90"
+              )}
+            >
+              {note.title || "Untitled"}
+            </h3>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-muted-foreground">
+                {format(new Date(note.updated_at), "MMM d")}
+              </span>
+              <span className="text-xs text-muted-foreground/60 truncate flex-1">
+                {note.content?.slice(0, 50) || "No content"}
+                {note.content && note.content.length > 50 ? "..." : ""}
+              </span>
+            </div>
+          </button>
+        </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent className="w-48 bg-popover">
+        {!isTrashView && (
+          <>
+            <ContextMenuItem onClick={() => onDuplicateNote?.(note)}>
+              <Copy className="h-4 w-4 mr-2" />
+              Duplicate
+            </ContextMenuItem>
+            <ContextMenuSub>
+              <ContextMenuSubTrigger>
+                <FolderInput className="h-4 w-4 mr-2" />
+                Move to folder
+              </ContextMenuSubTrigger>
+              <ContextMenuSubContent className="w-48 bg-popover">
+                <ContextMenuItem
+                  onClick={() => onMoveNote?.(note.id, null)}
+                  className={!note.folder_id ? "bg-muted" : ""}
+                >
+                  <FolderIcon className="h-4 w-4 mr-2" />
+                  No Folder
+                </ContextMenuItem>
+                {folders.length > 0 && <ContextMenuSeparator />}
+                {folders.map((folder) => (
+                  <ContextMenuItem
+                    key={folder.id}
+                    onClick={() => onMoveNote?.(note.id, folder.id)}
+                    className={note.folder_id === folder.id ? "bg-muted" : ""}
+                  >
+                    <FolderIcon className="h-4 w-4 mr-2" />
+                    {folder.name}
+                  </ContextMenuItem>
+                ))}
+              </ContextMenuSubContent>
+            </ContextMenuSub>
+            <ContextMenuSeparator />
+          </>
+        )}
+        <ContextMenuItem
+          onClick={() => onDeleteNote?.(note)}
+          className="text-destructive focus:text-destructive"
+        >
+          <Trash2 className="h-4 w-4 mr-2" />
+          {isTrashView ? "Delete Forever" : "Delete"}
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
+  );
 }
 
 export function NotesList({
@@ -229,110 +397,20 @@ export function NotesList({
         ) : (
           <div className="space-y-1">
             {notes.map((note) => (
-              <ContextMenu key={note.id}>
-                <ContextMenuTrigger asChild>
-                  <div
-                    className={cn(
-                      "w-full text-left p-3 rounded-xl transition-all duration-150 flex items-start gap-2",
-                      selectedNote?.id === note.id && !isSelectMode
-                        ? "bg-primary/15 border border-primary/20"
-                        : isSelectMode && selectedNotes.has(note.id)
-                        ? "bg-[hsl(var(--ai-accent))]/10 border border-[hsl(var(--ai-accent))]/20"
-                        : "hover:bg-muted/50 border border-transparent"
-                    )}
-                  >
-                    {/* Checkbox in select mode */}
-                    {isSelectMode && (
-                      <div
-                        className="pt-0.5 shrink-0"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleNoteSelection(note.id);
-                        }}
-                      >
-                        <Checkbox
-                          checked={selectedNotes.has(note.id)}
-                          className="h-4 w-4 border-muted-foreground/40 data-[state=checked]:bg-[hsl(var(--ai-accent))] data-[state=checked]:border-[hsl(var(--ai-accent))]"
-                        />
-                      </div>
-                    )}
-                    <button
-                      onClick={() => {
-                        if (isSelectMode) {
-                          toggleNoteSelection(note.id);
-                        } else {
-                          onSelectNote(note);
-                        }
-                      }}
-                      className="flex-1 text-left min-w-0"
-                    >
-                      <h3
-                        className={cn(
-                          "font-medium text-sm truncate",
-                          selectedNote?.id === note.id
-                            ? "text-foreground"
-                            : "text-foreground/90"
-                        )}
-                      >
-                        {note.title || "Untitled"}
-                      </h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs text-muted-foreground">
-                          {format(new Date(note.updated_at), "MMM d")}
-                        </span>
-                        <span className="text-xs text-muted-foreground/60 truncate flex-1">
-                          {note.content?.slice(0, 50) || "No content"}
-                          {note.content && note.content.length > 50 ? "..." : ""}
-                        </span>
-                      </div>
-                    </button>
-                  </div>
-                </ContextMenuTrigger>
-                <ContextMenuContent className="w-48 bg-popover">
-                  {!isTrashView && (
-                    <>
-                      <ContextMenuItem onClick={() => onDuplicateNote?.(note)}>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Duplicate
-                      </ContextMenuItem>
-                      <ContextMenuSub>
-                        <ContextMenuSubTrigger>
-                          <FolderInput className="h-4 w-4 mr-2" />
-                          Move to folder
-                        </ContextMenuSubTrigger>
-                        <ContextMenuSubContent className="w-48 bg-popover">
-                          <ContextMenuItem
-                            onClick={() => onMoveNote?.(note.id, null)}
-                            className={!note.folder_id ? "bg-muted" : ""}
-                          >
-                            <FolderIcon className="h-4 w-4 mr-2" />
-                            No Folder
-                          </ContextMenuItem>
-                          {folders.length > 0 && <ContextMenuSeparator />}
-                          {folders.map((folder) => (
-                            <ContextMenuItem
-                              key={folder.id}
-                              onClick={() => onMoveNote?.(note.id, folder.id)}
-                              className={note.folder_id === folder.id ? "bg-muted" : ""}
-                            >
-                              <FolderIcon className="h-4 w-4 mr-2" />
-                              {folder.name}
-                            </ContextMenuItem>
-                          ))}
-                        </ContextMenuSubContent>
-                      </ContextMenuSub>
-                      <ContextMenuSeparator />
-                    </>
-                  )}
-                  <ContextMenuItem
-                    onClick={() => onDeleteNote?.(note)}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    {isTrashView ? "Delete Forever" : "Delete"}
-                  </ContextMenuItem>
-                </ContextMenuContent>
-              </ContextMenu>
+              <DraggableNoteItem
+                key={note.id}
+                note={note}
+                selectedNote={selectedNote}
+                isSelectMode={isSelectMode}
+                selectedNotes={selectedNotes}
+                onSelectNote={onSelectNote}
+                toggleNoteSelection={toggleNoteSelection}
+                onDuplicateNote={onDuplicateNote}
+                onDeleteNote={onDeleteNote}
+                onMoveNote={onMoveNote}
+                folders={folders}
+                isTrashView={isTrashView}
+              />
             ))}
           </div>
         )}
