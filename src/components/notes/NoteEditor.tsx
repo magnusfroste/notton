@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -8,6 +8,7 @@ import Link from "@tiptap/extension-link";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { Markdown } from "tiptap-markdown";
+import generatePDF from "react-to-pdf";
 import {
   Bold,
   Italic,
@@ -26,8 +27,15 @@ import {
   Quote,
   Minus,
   RotateCcw,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Note } from "@/hooks/useNotes";
 import { format } from "date-fns";
 import { useDebouncedCallback } from "@/hooks/useDebouncedCallback";
@@ -51,6 +59,7 @@ export function NoteEditor({
   isTrashView,
 }: NoteEditorProps) {
   const [title, setTitle] = useState(note?.title || "");
+  const pdfContentRef = useRef<HTMLDivElement>(null);
 
   const debouncedUpdateContent = useDebouncedCallback(
     (content: string) => {
@@ -160,6 +169,19 @@ export function NoteEditor({
     URL.revokeObjectURL(url);
     
     toast.success("Note exported as markdown");
+  };
+
+  const exportPDF = () => {
+    if (pdfContentRef.current) {
+      generatePDF(pdfContentRef, {
+        filename: `${note.title || "untitled"}.pdf`,
+        page: {
+          margin: 20,
+          format: "a4",
+        },
+      });
+      toast.success("Note exported as PDF");
+    }
   };
 
   const addLink = () => {
@@ -329,15 +351,28 @@ export function NoteEditor({
             </>
           ) : (
             <>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={exportNote}
-                className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                title="Export as Markdown"
-              >
-                <Download className="h-4 w-4" />
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                    title="Export"
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-popover">
+                  <DropdownMenuItem onClick={exportNote}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export as Markdown (.md)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={exportPDF}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Export as PDF (.pdf)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button
                 variant="ghost"
                 size="icon"
@@ -360,7 +395,7 @@ export function NoteEditor({
 
       {/* Editor Content */}
       <div className="flex-1 overflow-y-auto tahoe-scrollbar">
-        <div className="max-w-3xl mx-auto px-8 py-8">
+        <div ref={pdfContentRef} className="max-w-3xl mx-auto px-8 py-8">
           {/* Note Title */}
           <input
             type="text"
