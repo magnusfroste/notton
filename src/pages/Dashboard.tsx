@@ -7,12 +7,16 @@ import { AIChatPanel } from "@/components/notes/AIChatPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotes, Note } from "@/hooks/useNotes";
 import { useProfile, SortBy, SortOrder } from "@/hooks/useProfile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, Menu, FileText } from "lucide-react";
 import {
   DndContext,
   DragOverlay,
   closestCenter,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   DragStartEvent,
@@ -33,9 +37,12 @@ export interface Folder {
   isSystem?: boolean;
 }
 
+type MobileView = 'sidebar' | 'list' | 'editor';
+
 const Dashboard = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { notes, folders: userFolders, loading: notesLoading, createNote, importNote, updateNote, deleteNote, restoreNote, createFolder, updateFolder, deleteFolder } = useNotes();
   const { sortBy, sortOrder, updatePreferences } = useProfile();
   
@@ -47,11 +54,18 @@ const Dashboard = () => {
   const [aiFolderNotes, setAiFolderNotes] = useState<Note[] | null>(null);
   const [aiFolderName, setAiFolderName] = useState<string | undefined>(undefined);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [mobileView, setMobileView] = useState<MobileView>('list');
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 200,
+        tolerance: 5,
       },
     })
   );
@@ -307,10 +321,36 @@ const Dashboard = () => {
 
   const activeNote = activeId ? notes.find(n => n.id === activeId) : null;
 
+  // Mobile handlers
+  const handleMobileSelectNote = (note: Note) => {
+    setSelectedNote(note);
+    if (isMobile) {
+      setMobileView('editor');
+    }
+  };
+
+  const handleMobileSelectFolder = (folderId: string) => {
+    setSelectedFolder(folderId);
+    if (isMobile) {
+      setMobileView('list');
+    }
+  };
+
+  const handleMobileBack = () => {
+    if (mobileView === 'editor') {
+      setMobileView('list');
+    } else if (mobileView === 'list') {
+      setMobileView('sidebar');
+    }
+  };
+
   if (authLoading || notesLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-muted-foreground">Loading your notes...</span>
+        </div>
       </div>
     );
   }
@@ -319,6 +359,127 @@ const Dashboard = () => {
     return null;
   }
 
+  // Mobile layout
+  if (isMobile) {
+    return (
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex flex-col h-screen w-full bg-background">
+          {/* Mobile Header */}
+          <div className="flex items-center justify-between h-12 px-3 border-b border-border bg-card">
+            {mobileView !== 'sidebar' && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+                onClick={handleMobileBack}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+            )}
+            {mobileView === 'sidebar' && (
+              <div className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                <span className="font-semibold text-foreground">Notton</span>
+              </div>
+            )}
+            <span className="flex-1 text-center text-sm font-medium text-foreground truncate px-2">
+              {mobileView === 'sidebar' && 'Folders'}
+              {mobileView === 'list' && (folders.find(f => f.id === selectedFolder)?.name || 'Notes')}
+              {mobileView === 'editor' && (selectedNote?.title || 'Untitled')}
+            </span>
+            {mobileView === 'sidebar' && <div className="w-9" />}
+            {mobileView === 'list' && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+                onClick={() => setMobileView('sidebar')}
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+            )}
+            {mobileView === 'editor' && <div className="w-9" />}
+          </div>
+
+          {/* Mobile Content */}
+          <div className="flex-1 overflow-hidden">
+            {mobileView === 'sidebar' && (
+              <FolderSidebar
+                folders={folders}
+                selectedFolder={selectedFolder}
+                onSelectFolder={handleMobileSelectFolder}
+                isCollapsed={false}
+                onToggleCollapse={() => {}}
+                onCreateFolder={createFolder}
+                onRenameFolder={(id, name) => updateFolder(id, { name })}
+                onDeleteFolder={deleteFolder}
+                onSignOut={signOut}
+                onOpenFolderAI={handleOpenFolderAI}
+              />
+            )}
+            {mobileView === 'list' && (
+              <SortableContext
+                items={filteredNotes.map(n => n.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <NotesList
+                  notes={filteredNotes}
+                  selectedNote={selectedNote}
+                  onSelectNote={handleMobileSelectNote}
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  onCreateNote={handleCreateNote}
+                  onImportNote={handleImportNote}
+                  onDuplicateNote={handleDuplicateNote}
+                  onDeleteNote={handleDeleteNoteFromList}
+                  onMoveNote={handleMoveNote}
+                  folders={userFolders}
+                  isTrashView={selectedFolder === "trash"}
+                  onOpenAIWithNotes={handleOpenAIWithNotes}
+                  sortBy={sortBy}
+                  sortOrder={sortOrder}
+                  onSortChange={handleSortChange}
+                />
+              </SortableContext>
+            )}
+            {mobileView === 'editor' && (
+              <NoteEditor
+                note={selectedNote}
+                folders={userFolders}
+                onOpenAIPanel={handleOpenSingleNoteAI}
+                onUpdateNote={handleUpdateNote}
+                onDeleteNote={handleDeleteNote}
+                onRestoreNote={handleRestoreNote}
+                isTrashView={selectedFolder === "trash"}
+              />
+            )}
+          </div>
+
+          {/* AI Chat Panel */}
+          <AIChatPanel
+            isOpen={isAIPanelOpen}
+            onClose={() => {
+              setIsAIPanelOpen(false);
+              setAiFolderNotes(null);
+              setAiFolderName(undefined);
+            }}
+            note={aiFolderNotes ? null : selectedNote}
+            notes={aiFolderNotes || undefined}
+            folderName={aiFolderName}
+            onApplyContent={handleApplyAIContent}
+            onCreateNote={handleCreateNoteFromAI}
+          />
+        </div>
+      </DndContext>
+    );
+  }
+
+  // Desktop layout
   return (
     <DndContext
       sensors={sensors}
