@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -30,6 +30,8 @@ import {
   FileText,
   FolderInput,
   Folder as FolderIcon,
+  FileCode,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,7 +41,13 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Note, Folder } from "@/hooks/useNotes";
+import { useProfile } from "@/hooks/useProfile";
 import { format } from "date-fns";
 import { useDebouncedCallback } from "@/hooks/useDebouncedCallback";
 import { toast } from "sonner";
@@ -64,7 +72,11 @@ export function NoteEditor({
   isTrashView,
 }: NoteEditorProps) {
   const [title, setTitle] = useState(note?.title || "");
+  const [rawMarkdown, setRawMarkdown] = useState(note?.content || "");
   const pdfContentRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  const { editorMode, updatePreferences } = useProfile();
 
   const debouncedUpdateContent = useDebouncedCallback(
     (content: string) => {
@@ -125,22 +137,62 @@ export function NoteEditor({
     },
   });
 
+  // Sync content when note changes
   useEffect(() => {
-    if (editor && note) {
-      const currentContent = editor.getHTML();
-      if (currentContent !== note.content) {
-        editor.commands.setContent(note.content || "");
-      }
+    if (note) {
+      setRawMarkdown(note.content || "");
       setTitle(note.title || "");
-      editor.setEditable(!isTrashView);
+      
+      if (editor) {
+        const currentContent = editor.getHTML();
+        if (currentContent !== note.content) {
+          editor.commands.setContent(note.content || "");
+        }
+        editor.setEditable(!isTrashView);
+      }
     }
   }, [note?.id, editor, isTrashView]);
+
+  // Sync raw markdown when switching modes
+  useEffect(() => {
+    if (editorMode === 'markdown' && editor) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const markdown = (editor.storage as any).markdown.getMarkdown();
+      setRawMarkdown(markdown);
+    } else if (editorMode === 'rich' && editor && note) {
+      editor.commands.setContent(rawMarkdown || note.content || "");
+    }
+  }, [editorMode]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
     setTitle(newTitle);
     debouncedUpdateTitle(newTitle);
   };
+
+  const handleRawMarkdownChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newContent = e.target.value;
+    setRawMarkdown(newContent);
+    debouncedUpdateContent(newContent);
+  };
+
+  const toggleEditorMode = useCallback(() => {
+    const newMode = editorMode === 'rich' ? 'markdown' : 'rich';
+    updatePreferences.mutate({ editor_mode: newMode });
+    toast.success(newMode === 'markdown' ? 'Switched to Markdown mode' : 'Switched to Rich Text mode');
+  }, [editorMode, updatePreferences]);
+
+  // Keyboard shortcut for toggling mode (Cmd/Ctrl + /)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === '/') {
+        e.preventDefault();
+        toggleEditorMode();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleEditorMode]);
 
   if (!note) {
     return (
@@ -156,7 +208,7 @@ export function NoteEditor({
   }
 
   const exportNote = () => {
-    const markdown = note.content || "";
+    const markdown = rawMarkdown || note.content || "";
     const filename = `${note.title || "untitled"}.md`;
     
     // Create blob with markdown content, adding title as H1 header
@@ -278,8 +330,8 @@ export function NoteEditor({
     <div className="flex-1 flex flex-col bg-background min-w-0">
       {/* Editor Toolbar */}
       <div className="flex items-center justify-between px-4 h-12 border-b border-border">
-        {/* Format Actions */}
-        {!isTrashView && (
+        {/* Format Actions - only show in rich mode */}
+        {!isTrashView && editorMode === 'rich' && (
           <div className="flex items-center gap-0.5">
             {formatActions.map((action, index) =>
               action.icon === null ? (
@@ -305,6 +357,13 @@ export function NoteEditor({
             )}
           </div>
         )}
+        {!isTrashView && editorMode === 'markdown' && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <FileCode className="h-4 w-4" />
+            <span>Markdown Mode</span>
+            <span className="text-xs opacity-60">(⌘/Ctrl + / to switch)</span>
+          </div>
+        )}
         {isTrashView && (
           <div className="text-sm text-muted-foreground">
             This note is in trash
@@ -313,6 +372,33 @@ export function NoteEditor({
 
         {/* Right Actions */}
         <div className="flex items-center gap-1">
+          {/* Editor Mode Toggle */}
+          {!isTrashView && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleEditorMode}
+                  className={cn(
+                    "h-8 w-8 text-muted-foreground hover:text-foreground",
+                    editorMode === 'markdown' && "bg-muted text-foreground"
+                  )}
+                >
+                  {editorMode === 'rich' ? (
+                    <FileCode className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {editorMode === 'rich' ? 'Switch to Markdown mode' : 'Switch to Rich Text mode'}
+                <span className="ml-2 text-xs opacity-60">⌘/</span>
+              </TooltipContent>
+            </Tooltip>
+          )}
+          
           {/* AI Button - Prominent */}
           {!isTrashView && (
             <Button
@@ -461,8 +547,26 @@ export function NoteEditor({
             </span>
           </div>
 
-          {/* TipTap Editor */}
-          <EditorContent editor={editor} className="tiptap-editor" />
+          {/* Editor - Rich Text or Raw Markdown */}
+          {editorMode === 'markdown' ? (
+            <textarea
+              ref={textareaRef}
+              value={rawMarkdown}
+              onChange={handleRawMarkdownChange}
+              disabled={isTrashView}
+              className={cn(
+                "w-full min-h-[calc(100vh-280px)] resize-none",
+                "bg-transparent border-0 outline-none",
+                "font-mono text-sm leading-relaxed text-foreground",
+                "placeholder:text-muted-foreground/40",
+                isTrashView && "cursor-not-allowed opacity-60"
+              )}
+              placeholder="# Start writing in markdown..."
+              spellCheck={false}
+            />
+          ) : (
+            <EditorContent editor={editor} className="tiptap-editor" />
+          )}
         </div>
       </div>
     </div>

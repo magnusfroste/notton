@@ -3,13 +3,22 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
+export interface ProfilePreferences {
+  editor_mode: 'rich' | 'markdown';
+}
+
 export interface Profile {
   id: string;
   display_name: string | null;
   avatar_url: string | null;
+  preferences: ProfilePreferences | null;
   created_at: string;
   updated_at: string;
 }
+
+const defaultPreferences: ProfilePreferences = {
+  editor_mode: 'rich',
+};
 
 export function useProfile() {
   const { user } = useAuth();
@@ -26,7 +35,12 @@ export function useProfile() {
         .single();
       
       if (error) throw error;
-      return data as Profile;
+      // Cast preferences from JSON to our typed interface
+      const prefs = data.preferences as unknown as ProfilePreferences | null;
+      return {
+        ...data,
+        preferences: prefs || defaultPreferences,
+      } as Profile;
     },
     enabled: !!user?.id,
   });
@@ -54,6 +68,31 @@ export function useProfile() {
     },
   });
 
+  const updatePreferences = useMutation({
+    mutationFn: async (updates: Partial<ProfilePreferences>) => {
+      if (!user?.id) throw new Error('Not authenticated');
+      
+      const currentPrefs = profile?.preferences || defaultPreferences;
+      const newPrefs = { ...currentPrefs, ...updates };
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ preferences: newPrefs })
+        .eq('id', user.id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
+    },
+    onError: (error) => {
+      toast({ title: 'Failed to update preferences', description: error.message, variant: 'destructive' });
+    },
+  });
+
   const uploadAvatar = async (file: File): Promise<string | null> => {
     if (!user?.id) return null;
 
@@ -76,10 +115,14 @@ export function useProfile() {
     return publicUrl;
   };
 
+  const editorMode = profile?.preferences?.editor_mode || 'rich';
+
   return {
     profile,
     isLoading,
     updateProfile,
+    updatePreferences,
     uploadAvatar,
+    editorMode,
   };
 }
