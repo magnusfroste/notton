@@ -1,15 +1,12 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Settings, Users, CreditCard } from 'lucide-react';
+import { ArrowLeft, Users, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { useAdminCheck } from '@/hooks/useAdminCheck';
 import { useAuth } from '@/contexts/AuthContext';
 import { AIConfigCard } from '@/components/admin/AIConfigCard';
+import { AppSettingsCard } from '@/components/admin/AppSettingsCard';
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -62,55 +59,7 @@ const Admin = () => {
       <main className="container py-8 px-4 max-w-4xl">
         <div className="space-y-8">
           {/* Application Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Application Settings
-              </CardTitle>
-              <CardDescription>
-                Configure global application settings
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="appName">Application Name</Label>
-                <Input
-                  id="appName"
-                  defaultValue="Tahoe Notes"
-                  placeholder="Enter application name"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="defaultTheme">Default Theme</Label>
-                <Select defaultValue="dark">
-                  <SelectTrigger id="defaultTheme">
-                    <SelectValue placeholder="Select theme" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="light">Light</SelectItem>
-                    <SelectItem value="dark">Dark</SelectItem>
-                    <SelectItem value="system">System</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Allow New Registrations</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Enable or disable new user signups
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-
-              <Button className="w-full sm:w-auto" disabled>
-                Save Settings
-              </Button>
-            </CardContent>
-          </Card>
+          <AppSettingsCard />
 
           {/* AI Configuration */}
           <AIConfigCard />
