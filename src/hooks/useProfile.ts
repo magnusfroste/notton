@@ -3,9 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
+export type SortBy = 'updated' | 'created' | 'title';
+export type SortOrder = 'asc' | 'desc';
+
 export interface ProfilePreferences {
   editor_mode: 'rich' | 'markdown';
   show_line_numbers: boolean;
+  sort_by: SortBy;
+  sort_order: SortOrder;
 }
 
 export interface Profile {
@@ -20,6 +25,8 @@ export interface Profile {
 const defaultPreferences: ProfilePreferences = {
   editor_mode: 'rich',
   show_line_numbers: false,
+  sort_by: 'updated',
+  sort_order: 'desc',
 };
 
 export function useProfile() {
@@ -119,6 +126,8 @@ export function useProfile() {
 
   const editorMode = profile?.preferences?.editor_mode || 'rich';
   const showLineNumbers = profile?.preferences?.show_line_numbers ?? false;
+  const sortBy = profile?.preferences?.sort_by || 'updated';
+  const sortOrder = profile?.preferences?.sort_order || 'desc';
 
   return {
     profile,
@@ -128,5 +137,7 @@ export function useProfile() {
     uploadAvatar,
     editorMode,
     showLineNumbers,
+    sortBy,
+    sortOrder,
   };
 }

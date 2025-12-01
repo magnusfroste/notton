@@ -6,6 +6,7 @@ import { NoteEditor } from "@/components/notes/NoteEditor";
 import { AIChatPanel } from "@/components/notes/AIChatPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotes, Note } from "@/hooks/useNotes";
+import { useProfile, SortBy, SortOrder } from "@/hooks/useProfile";
 import { toast } from "sonner";
 import {
   DndContext,
@@ -36,6 +37,7 @@ const Dashboard = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const { notes, folders: userFolders, loading: notesLoading, createNote, importNote, updateNote, deleteNote, restoreNote, createFolder, updateFolder, deleteFolder } = useNotes();
+  const { sortBy, sortOrder, updatePreferences } = useProfile();
   
   const [selectedFolder, setSelectedFolder] = useState<string>("all");
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
@@ -81,7 +83,7 @@ const Dashboard = () => {
     return [...systemFolders, ...userFoldersMapped];
   }, [notes, userFolders]);
 
-  // Filter notes based on selected folder and search
+  // Filter and sort notes based on selected folder, search, and sort preferences
   const filteredNotes = useMemo(() => {
     let filtered = notes;
 
@@ -104,8 +106,25 @@ const Dashboard = () => {
       );
     }
 
-    return filtered;
-  }, [notes, selectedFolder, searchQuery]);
+    // Sort
+    const sorted = [...filtered].sort((a, b) => {
+      let comparison = 0;
+      if (sortBy === 'updated') {
+        comparison = new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+      } else if (sortBy === 'created') {
+        comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      } else if (sortBy === 'title') {
+        comparison = a.title.localeCompare(b.title);
+      }
+      return sortOrder === 'desc' ? -comparison : comparison;
+    });
+
+    return sorted;
+  }, [notes, selectedFolder, searchQuery, sortBy, sortOrder]);
+
+  const handleSortChange = (newSortBy: SortBy, newSortOrder: SortOrder) => {
+    updatePreferences.mutate({ sort_by: newSortBy, sort_order: newSortOrder });
+  };
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -341,6 +360,9 @@ const Dashboard = () => {
             folders={userFolders}
             isTrashView={selectedFolder === "trash"}
             onOpenAIWithNotes={handleOpenAIWithNotes}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSortChange={handleSortChange}
           />
         </SortableContext>
 
