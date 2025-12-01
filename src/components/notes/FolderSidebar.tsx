@@ -16,6 +16,7 @@ import {
   MoreHorizontal,
   UserCircle,
   Sparkles,
+  Pencil,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useProfile } from "@/hooks/useProfile";
@@ -56,6 +57,7 @@ interface FolderSidebarProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   onCreateFolder: (name: string, icon?: string) => Promise<any>;
+  onRenameFolder: (id: string, name: string) => Promise<boolean>;
   onDeleteFolder: (id: string) => Promise<boolean>;
   onSignOut: () => Promise<void>;
   onOpenFolderAI?: (folderId: string) => void;
@@ -67,6 +69,7 @@ interface DroppableFolderProps {
   onSelectFolder: (id: string) => void;
   isCollapsed: boolean;
   onOpenFolderAI?: (folderId: string) => void;
+  onRenameFolder?: (id: string) => void;
   onDeleteFolder?: (id: string) => Promise<boolean>;
   isUserFolder?: boolean;
 }
@@ -77,6 +80,7 @@ function DroppableFolder({
   onSelectFolder,
   isCollapsed,
   onOpenFolderAI,
+  onRenameFolder,
   onDeleteFolder,
   isUserFolder,
 }: DroppableFolderProps) {
@@ -129,6 +133,12 @@ function DroppableFolder({
                   AI Assistant
                 </DropdownMenuItem>
               )}
+              {onRenameFolder && (
+                <DropdownMenuItem onClick={() => onRenameFolder(folder.id)}>
+                  <Pencil className="h-3.5 w-3.5 mr-2" />
+                  Rename
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 className="text-destructive"
                 onClick={() => onDeleteFolder?.(folder.id)}
@@ -172,6 +182,7 @@ export function FolderSidebar({
   isCollapsed,
   onToggleCollapse,
   onCreateFolder,
+  onRenameFolder,
   onDeleteFolder,
   onSignOut,
   onOpenFolderAI,
@@ -181,6 +192,7 @@ export function FolderSidebar({
   const { profile } = useProfile();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
+  const [renameFolder, setRenameFolder] = useState<{ id: string; name: string } | null>(null);
 
   const getInitials = (name: string | null, email: string | undefined) => {
     if (name) {
@@ -198,6 +210,20 @@ export function FolderSidebar({
       await onCreateFolder(newFolderName.trim());
       setNewFolderName("");
       setIsCreateOpen(false);
+    }
+  };
+
+  const handleStartRename = (folderId: string) => {
+    const folder = folders.find(f => f.id === folderId);
+    if (folder) {
+      setRenameFolder({ id: folder.id, name: folder.name });
+    }
+  };
+
+  const handleRenameFolder = async () => {
+    if (renameFolder && renameFolder.name.trim()) {
+      await onRenameFolder(renameFolder.id, renameFolder.name.trim());
+      setRenameFolder(null);
     }
   };
 
@@ -294,11 +320,36 @@ export function FolderSidebar({
             onSelectFolder={onSelectFolder}
             isCollapsed={isCollapsed}
             onOpenFolderAI={onOpenFolderAI}
+            onRenameFolder={handleStartRename}
             onDeleteFolder={onDeleteFolder}
             isUserFolder
           />
         ))}
       </div>
+
+      {/* Rename Folder Dialog */}
+      <Dialog open={!!renameFolder} onOpenChange={(open) => !open && setRenameFolder(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rename Folder</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <Input
+              placeholder="Folder name"
+              value={renameFolder?.name || ""}
+              onChange={(e) => setRenameFolder(prev => prev ? { ...prev, name: e.target.value } : null)}
+              onKeyDown={(e) => e.key === "Enter" && handleRenameFolder()}
+              autoFocus
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setRenameFolder(null)}>
+                Cancel
+              </Button>
+              <Button onClick={handleRenameFolder}>Rename</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Footer - Trash, Profile, Theme Toggle & Sign Out */}
       <div className="p-2 border-t border-sidebar-border space-y-0.5">

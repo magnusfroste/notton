@@ -35,7 +35,7 @@ export interface Folder {
 const Dashboard = () => {
   const { user, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
-  const { notes, folders: userFolders, loading: notesLoading, createNote, importNote, updateNote, deleteNote, restoreNote, createFolder, deleteFolder } = useNotes();
+  const { notes, folders: userFolders, loading: notesLoading, createNote, importNote, updateNote, deleteNote, restoreNote, createFolder, updateFolder, deleteFolder } = useNotes();
   
   const [selectedFolder, setSelectedFolder] = useState<string>("all");
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
@@ -316,6 +316,7 @@ const Dashboard = () => {
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           onCreateFolder={createFolder}
+          onRenameFolder={(id, name) => updateFolder(id, { name })}
           onDeleteFolder={deleteFolder}
           onSignOut={signOut}
           onOpenFolderAI={handleOpenFolderAI}
