@@ -154,7 +154,7 @@ export function NoteEditor({
         editor.setEditable(!isTrashView);
       }
     }
-  }, [note?.id, editor, isTrashView]);
+  }, [note?.id, note?.content, note?.title, editor, isTrashView]);
 
   // Sync raw markdown when switching modes
   useEffect(() => {
@@ -165,7 +165,7 @@ export function NoteEditor({
     } else if (editorMode === 'rich' && editor && note) {
       editor.commands.setContent(rawMarkdown || note.content || "");
     }
-  }, [editorMode]);
+  }, [editorMode, editor, note, rawMarkdown]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
