@@ -9,6 +9,10 @@ import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { Markdown } from "tiptap-markdown";
 import generatePDF from "react-to-pdf";
+import CodeMirror from "@uiw/react-codemirror";
+import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
+import { languages } from "@codemirror/language-data";
+import { EditorView } from "@codemirror/view";
 import {
   Bold,
   Italic,
@@ -74,7 +78,6 @@ export function NoteEditor({
   const [title, setTitle] = useState(note?.title || "");
   const [rawMarkdown, setRawMarkdown] = useState(note?.content || "");
   const pdfContentRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   const { editorMode, updatePreferences } = useProfile();
 
@@ -168,12 +171,6 @@ export function NoteEditor({
     const newTitle = e.target.value;
     setTitle(newTitle);
     debouncedUpdateTitle(newTitle);
-  };
-
-  const handleRawMarkdownChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newContent = e.target.value;
-    setRawMarkdown(newContent);
-    debouncedUpdateContent(newContent);
   };
 
   const toggleEditorMode = useCallback(() => {
@@ -549,20 +546,73 @@ export function NoteEditor({
 
           {/* Editor - Rich Text or Raw Markdown */}
           {editorMode === 'markdown' ? (
-            <textarea
-              ref={textareaRef}
+            <CodeMirror
               value={rawMarkdown}
-              onChange={handleRawMarkdownChange}
-              disabled={isTrashView}
-              className={cn(
-                "w-full min-h-[calc(100vh-280px)] resize-none",
-                "bg-transparent border-0 outline-none",
-                "font-mono text-sm leading-relaxed text-foreground",
-                "placeholder:text-muted-foreground/40",
-                isTrashView && "cursor-not-allowed opacity-60"
-              )}
+              onChange={(value) => {
+                setRawMarkdown(value);
+                debouncedUpdateContent(value);
+              }}
+              editable={!isTrashView}
+              extensions={[
+                markdown({ base: markdownLanguage, codeLanguages: languages }),
+                EditorView.lineWrapping,
+                EditorView.theme({
+                  "&": {
+                    backgroundColor: "transparent",
+                    fontSize: "14px",
+                  },
+                  ".cm-content": {
+                    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                    padding: "0",
+                    caretColor: "hsl(var(--foreground))",
+                  },
+                  ".cm-line": {
+                    padding: "0",
+                    lineHeight: "1.7",
+                  },
+                  ".cm-gutters": {
+                    display: "none",
+                  },
+                  ".cm-cursor": {
+                    borderLeftColor: "hsl(var(--foreground))",
+                  },
+                  ".cm-selectionBackground, .cm-content ::selection": {
+                    backgroundColor: "hsl(var(--primary) / 0.3) !important",
+                  },
+                  ".cm-activeLine": {
+                    backgroundColor: "transparent",
+                  },
+                  "&.cm-focused .cm-activeLine": {
+                    backgroundColor: "hsl(var(--muted) / 0.3)",
+                  },
+                  "&.cm-focused": {
+                    outline: "none",
+                  },
+                }),
+              ]}
+              theme="dark"
               placeholder="# Start writing in markdown..."
-              spellCheck={false}
+              className="min-h-[calc(100vh-280px)] [&_.cm-editor]:bg-transparent [&_.cm-scroller]:overflow-visible"
+              basicSetup={{
+                lineNumbers: false,
+                foldGutter: false,
+                highlightActiveLineGutter: false,
+                dropCursor: true,
+                allowMultipleSelections: true,
+                indentOnInput: true,
+                bracketMatching: true,
+                closeBrackets: true,
+                autocompletion: false,
+                rectangularSelection: true,
+                crosshairCursor: false,
+                highlightActiveLine: true,
+                highlightSelectionMatches: true,
+                closeBracketsKeymap: true,
+                searchKeymap: true,
+                foldKeymap: false,
+                completionKeymap: false,
+                lintKeymap: false,
+              }}
             />
           ) : (
             <EditorContent editor={editor} className="tiptap-editor" />
