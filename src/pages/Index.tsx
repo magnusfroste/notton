@@ -2,7 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { FileText, Sparkles, FolderOpen, Search, Trash2, Type } from "lucide-react";
+import { FileText, Sparkles, FolderOpen, Search, Trash2, Type, Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 import heroIllustration from "@/assets/hero-illustration.png";
 
 const features = [
@@ -36,6 +37,7 @@ const features = [
 const Index = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     if (!loading && user) {
@@ -52,7 +54,17 @@ const Index = () => {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center bg-background px-4 py-12">
+    <div className="relative flex min-h-screen flex-col items-center bg-background px-4 py-12">
+      {/* Theme Toggle */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+      >
+        {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+      </Button>
+
       <div className="text-center max-w-2xl">
         <div className="flex items-center justify-center gap-3 mb-6">
           <FileText className="h-12 w-12 text-primary" />
