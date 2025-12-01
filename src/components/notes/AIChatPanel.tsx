@@ -34,6 +34,47 @@ const quickActions = [
   { icon: Lightbulb, label: "Generate ideas", action: "ideas", prompt: "Generate related ideas for this note" },
 ];
 
+// Code block component with copy button
+function CodeBlock({ language, children }: { language: string; children: string }) {
+  const [copied, setCopied] = useState(false);
+  
+  const handleCopy = () => {
+    navigator.clipboard.writeText(children);
+    setCopied(true);
+    toast.success("Code copied");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="relative group">
+      <button
+        onClick={handleCopy}
+        className={cn(
+          "absolute right-2 top-2 p-1.5 rounded-md",
+          "bg-background/80 hover:bg-background",
+          "opacity-0 group-hover:opacity-100 transition-opacity",
+          "text-muted-foreground hover:text-foreground"
+        )}
+        title="Copy code"
+      >
+        {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+      </button>
+      <SyntaxHighlighter
+        style={oneDark}
+        language={language}
+        PreTag="div"
+        customStyle={{
+          margin: "0.5rem 0",
+          borderRadius: "0.5rem",
+          fontSize: "0.75rem",
+        }}
+      >
+        {children}
+      </SyntaxHighlighter>
+    </div>
+  );
+}
+
 export function AIChatPanel({ isOpen, onClose, note, onApplyContent }: AIChatPanelProps) {
   const [input, setInput] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -187,24 +228,16 @@ export function AIChatPanel({ isOpen, onClose, note, onApplyContent }: AIChatPan
                         components={{
                           code({ className, children, ...props }) {
                             const match = /language-(\w+)/.exec(className || "");
-                            const isInline = !match && !String(children).includes("\n");
+                            const codeString = String(children).replace(/\n$/, "");
+                            const isInline = !match && !codeString.includes("\n");
                             return isInline ? (
                               <code className={className} {...props}>
                                 {children}
                               </code>
                             ) : (
-                              <SyntaxHighlighter
-                                style={oneDark}
-                                language={match?.[1] || "text"}
-                                PreTag="div"
-                                customStyle={{
-                                  margin: "0.5rem 0",
-                                  borderRadius: "0.5rem",
-                                  fontSize: "0.75rem",
-                                }}
-                              >
-                                {String(children).replace(/\n$/, "")}
-                              </SyntaxHighlighter>
+                              <CodeBlock language={match?.[1] || "text"}>
+                                {codeString}
+                              </CodeBlock>
                             );
                           },
                         }}
