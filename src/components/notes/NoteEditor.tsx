@@ -28,6 +28,8 @@ import {
   Minus,
   RotateCcw,
   FileText,
+  FolderInput,
+  Folder as FolderIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,14 +37,16 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Note } from "@/hooks/useNotes";
+import { Note, Folder } from "@/hooks/useNotes";
 import { format } from "date-fns";
 import { useDebouncedCallback } from "@/hooks/useDebouncedCallback";
 import { toast } from "sonner";
 
 interface NoteEditorProps {
   note: Note | null;
+  folders: Folder[];
   onOpenAIPanel: () => void;
   onUpdateNote: (id: string, updates: Partial<Pick<Note, "title" | "content" | "folder_id">>) => Promise<void>;
   onDeleteNote: () => Promise<void>;
@@ -52,6 +56,7 @@ interface NoteEditorProps {
 
 export function NoteEditor({
   note,
+  folders,
   onOpenAIPanel,
   onUpdateNote,
   onDeleteNote,
@@ -371,6 +376,44 @@ export function NoteEditor({
                     <FileText className="h-4 w-4 mr-2" />
                     Export as PDF (.pdf)
                   </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                    title="Move to folder"
+                  >
+                    <FolderInput className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-popover">
+                  <DropdownMenuItem 
+                    onClick={() => {
+                      onUpdateNote(note.id, { folder_id: null });
+                      toast.success("Note moved to All Notes");
+                    }}
+                    className={!note.folder_id ? "bg-muted" : ""}
+                  >
+                    <FolderIcon className="h-4 w-4 mr-2" />
+                    No Folder
+                  </DropdownMenuItem>
+                  {folders.length > 0 && <DropdownMenuSeparator />}
+                  {folders.map((folder) => (
+                    <DropdownMenuItem 
+                      key={folder.id}
+                      onClick={() => {
+                        onUpdateNote(note.id, { folder_id: folder.id });
+                        toast.success(`Note moved to ${folder.name}`);
+                      }}
+                      className={note.folder_id === folder.id ? "bg-muted" : ""}
+                    >
+                      <FolderIcon className="h-4 w-4 mr-2" />
+                      {folder.name}
+                    </DropdownMenuItem>
+                  ))}
                 </DropdownMenuContent>
               </DropdownMenu>
               <Button

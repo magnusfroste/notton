@@ -190,6 +190,7 @@ const Dashboard = () => {
       {/* Right Column - Note Editor */}
       <NoteEditor
         note={selectedNote}
+        folders={userFolders}
         onOpenAIPanel={() => setIsAIPanelOpen(true)}
         onUpdateNote={handleUpdateNote}
         onDeleteNote={handleDeleteNote}
