@@ -19,7 +19,7 @@ import {
   Link as LinkIcon,
   Sparkles,
   MoreHorizontal,
-  Share,
+  Download,
   Trash2,
   Heading1,
   Heading2,
@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { Note } from "@/hooks/useNotes";
 import { format } from "date-fns";
 import { useDebouncedCallback } from "@/hooks/useDebouncedCallback";
+import { toast } from "sonner";
 
 interface NoteEditorProps {
   note: Note | null;
@@ -139,6 +140,27 @@ export function NoteEditor({
       </div>
     );
   }
+
+  const exportNote = () => {
+    const markdown = note.content || "";
+    const filename = `${note.title || "untitled"}.md`;
+    
+    // Create blob with markdown content, adding title as H1 header
+    const content = `# ${note.title || "Untitled"}\n\n${markdown}`;
+    const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+    
+    // Create download link
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success("Note exported as markdown");
+  };
 
   const addLink = () => {
     const url = window.prompt("Enter URL:");
@@ -310,9 +332,11 @@ export function NoteEditor({
               <Button
                 variant="ghost"
                 size="icon"
+                onClick={exportNote}
                 className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                title="Export as Markdown"
               >
-                <Share className="h-4 w-4" />
+                <Download className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
