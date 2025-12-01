@@ -151,7 +151,7 @@ const Dashboard = () => {
 
   if (authLoading || notesLoading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-background dark">
+      <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="animate-pulse text-muted-foreground">Loading...</div>
       </div>
     );
@@ -162,7 +162,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="flex h-screen w-full bg-background dark">
+    <div className="flex h-screen w-full bg-background">
       {/* Left Sidebar - Folders */}
       <FolderSidebar
         folders={folders}
