@@ -61,7 +61,7 @@ const Dashboard = () => {
     updateFolder, 
     deleteFolder 
   } = useNotes();
-  const { sortBy, sortOrder, updatePreferences } = useProfile();
+  const { sortBy, sortOrder, displayDensity, listWidth, updatePreferences } = useProfile();
   
   const [selectedFolder, setSelectedFolder] = useState<string>("all");
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
@@ -461,6 +461,8 @@ const Dashboard = () => {
                   sortBy={sortBy}
                   sortOrder={sortOrder}
                   onSortChange={handleSortChange}
+                  displayDensity={displayDensity}
+                  listWidth={listWidth}
                 />
               </SortableContext>
             )}
@@ -542,6 +544,8 @@ const Dashboard = () => {
             sortBy={sortBy}
             sortOrder={sortOrder}
             onSortChange={handleSortChange}
+            displayDensity={displayDensity}
+            listWidth={listWidth}
           />
         </SortableContext>
 

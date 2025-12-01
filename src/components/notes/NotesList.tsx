@@ -4,7 +4,7 @@ import { Search, Plus, SortDesc, SortAsc, Upload, Copy, Trash2, FolderInput, Fol
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Note, Folder } from "@/hooks/useNotes";
-import { SortBy, SortOrder } from "@/hooks/useProfile";
+import { SortBy, SortOrder, DisplayDensity } from "@/hooks/useProfile";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import {
@@ -44,7 +44,15 @@ interface NotesListProps {
   sortBy: SortBy;
   sortOrder: SortOrder;
   onSortChange: (sortBy: SortBy, sortOrder: SortOrder) => void;
+  displayDensity?: DisplayDensity;
+  listWidth?: 'narrow' | 'default' | 'wide';
 }
+
+const densityStyles = {
+  comfortable: { padding: 'p-3', gap: 'space-y-1', showPreview: true, textSize: 'text-sm' },
+  cozy: { padding: 'p-2', gap: 'space-y-0.5', showPreview: true, textSize: 'text-sm' },
+  compact: { padding: 'p-1.5', gap: 'space-y-0', showPreview: false, textSize: 'text-xs' },
+};
 
 interface DraggableNoteItemProps {
   note: Note;
@@ -59,6 +67,7 @@ interface DraggableNoteItemProps {
   onMoveSelected?: (folderId: string | null) => void;
   folders: Folder[];
   isTrashView?: boolean;
+  density: typeof densityStyles.comfortable;
 }
 
 function DraggableNoteItem({
@@ -74,6 +83,7 @@ function DraggableNoteItem({
   onMoveSelected,
   folders,
   isTrashView,
+  density,
 }: DraggableNoteItemProps) {
   const isNoteSelected = selectedNotes.has(note.id);
   const shouldBatchMove = isSelectMode && isNoteSelected && selectedNotes.size > 1;
@@ -109,7 +119,8 @@ function DraggableNoteItem({
           ref={setNodeRef}
           style={style}
           className={cn(
-            "w-full text-left p-3 rounded-xl transition-all duration-150 flex items-start gap-2",
+            "w-full text-left rounded-xl transition-all duration-150 flex items-start gap-2",
+            density.padding,
             isDragging && "opacity-50 z-50 shadow-lg",
             selectedNote?.id === note.id && !isSelectMode
               ? "bg-primary/15 border border-primary/20"
@@ -145,7 +156,8 @@ function DraggableNoteItem({
           >
             <h3
               className={cn(
-                "font-medium text-sm truncate",
+                "font-medium truncate",
+                density.textSize,
                 selectedNote?.id === note.id
                   ? "text-foreground"
                   : "text-foreground/90"
@@ -153,15 +165,21 @@ function DraggableNoteItem({
             >
               {note.title || "Untitled"}
             </h3>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs text-muted-foreground">
+            {density.showPreview ? (
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-xs text-muted-foreground">
+                  {format(new Date(note.updated_at), "MMM d")}
+                </span>
+                <span className="text-xs text-muted-foreground/60 truncate flex-1">
+                  {note.content?.slice(0, 50) || "No content"}
+                  {note.content && note.content.length > 50 ? "..." : ""}
+                </span>
+              </div>
+            ) : (
+              <span className="text-[10px] text-muted-foreground">
                 {format(new Date(note.updated_at), "MMM d")}
               </span>
-              <span className="text-xs text-muted-foreground/60 truncate flex-1">
-                {note.content?.slice(0, 50) || "No content"}
-                {note.content && note.content.length > 50 ? "..." : ""}
-              </span>
-            </div>
+            )}
           </button>
         </div>
       </ContextMenuTrigger>
@@ -230,7 +248,16 @@ export function NotesList({
   sortBy,
   sortOrder,
   onSortChange,
+  displayDensity = 'comfortable',
+  listWidth = 'default',
 }: NotesListProps) {
+  const density = densityStyles[displayDensity];
+  
+  const listWidthClass = {
+    narrow: 'md:w-60',
+    default: 'md:w-72',
+    wide: 'md:w-80',
+  }[listWidth];
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedNotes, setSelectedNotes] = useState<Set<string>>(new Set());
@@ -318,7 +345,7 @@ export function NotesList({
   };
 
   return (
-    <div className="flex flex-col w-full md:w-72 h-full border-r border-border bg-card relative">
+    <div className={cn("flex flex-col w-full h-full border-r border-border bg-card relative", listWidthClass)}>
       {/* Header with Search */}
       <div className="p-3 space-y-3">
         {/* Big Search Bar */}
@@ -480,7 +507,7 @@ export function NotesList({
             </p>
           </div>
         ) : (
-          <div className="space-y-1">
+          <div className={density.gap}>
             {notes.map((note) => (
               <DraggableNoteItem
                 key={note.id}
@@ -496,6 +523,7 @@ export function NotesList({
                 onMoveSelected={handleMoveSelected}
                 folders={folders}
                 isTrashView={isTrashView}
+                density={density}
               />
             ))}
           </div>
