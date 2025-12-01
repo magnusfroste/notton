@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { DefaultThemeLoader } from "@/components/DefaultThemeLoader";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
@@ -16,11 +17,12 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+      <DefaultThemeLoader>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter
           future={{
             v7_startTransition: true,
             v7_relativeSplatPath: true,
@@ -36,8 +38,9 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </DefaultThemeLoader>
     </ThemeProvider>
   </QueryClientProvider>
 );
