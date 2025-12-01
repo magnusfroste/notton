@@ -1,7 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,8 +12,43 @@ interface NoteInput {
   content: string;
 }
 
+interface AIConfig {
+  provider: 'openai' | 'xai';
+  model: string;
+  enabled: boolean;
+}
+
+const PROVIDER_CONFIG = {
+  openai: {
+    url: 'https://api.openai.com/v1/chat/completions',
+    envKey: 'OPENAI_API_KEY',
+  },
+  xai: {
+    url: 'https://api.x.ai/v1/chat/completions',
+    envKey: 'XAI_API_KEY',
+  },
+};
+
+async function getAIConfig(): Promise<AIConfig> {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  const { data, error } = await supabase
+    .from('app_settings')
+    .select('value')
+    .eq('key', 'ai_config')
+    .single();
+
+  if (error || !data) {
+    console.log('Using default AI config');
+    return { provider: 'openai', model: 'gpt-4o-mini', enabled: true };
+  }
+
+  return data.value as AIConfig;
+}
+
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -22,16 +56,38 @@ serve(async (req) => {
   try {
     const { messages, noteContent, noteTitle, notes, action } = await req.json();
     
+    // Get AI configuration from database
+    const aiConfig = await getAIConfig();
+    
+    if (!aiConfig.enabled) {
+      return new Response(
+        JSON.stringify({ error: 'AI features are currently disabled' }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const providerConfig = PROVIDER_CONFIG[aiConfig.provider];
+    const apiKey = Deno.env.get(providerConfig.envKey);
+
+    if (!apiKey) {
+      console.error(`${providerConfig.envKey} not configured`);
+      return new Response(
+        JSON.stringify({ error: `${aiConfig.provider === 'openai' ? 'OpenAI' : 'xAI'} API key not configured` }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Support both single note (legacy) and multi-note format
     const notesList: NoteInput[] = notes || [{ title: noteTitle || 'Untitled', content: noteContent || '' }];
     const isMultiNote = notesList.length > 1;
     
-    console.log('AI Chat request:', { action, notesCount: notesList.length, messagesCount: messages?.length });
-
-    if (!openAIApiKey) {
-      console.error('OPENAI_API_KEY not configured');
-      throw new Error('OpenAI API key not configured');
-    }
+    console.log('AI Chat request:', { 
+      provider: aiConfig.provider,
+      model: aiConfig.model,
+      action, 
+      notesCount: notesList.length, 
+      messagesCount: messages?.length 
+    });
 
     // Build context based on single or multi-note
     let notesContext: string;
@@ -105,14 +161,14 @@ Format findings as a Markdown report with clear sections.`;
 Format as Markdown with bullet points for key insights.`;
     }
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch(providerConfig.url, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: aiConfig.model,
         messages: [
           { role: 'system', content: systemPrompt },
           ...messages
@@ -125,8 +181,8 @@ Format as Markdown with bullet points for key insights.`;
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenAI API error:', response.status, errorText);
-      throw new Error(`OpenAI API error: ${response.status}`);
+      console.error(`${aiConfig.provider} API error:`, response.status, errorText);
+      throw new Error(`${aiConfig.provider} API error: ${response.status}`);
     }
 
     // Return the stream directly
