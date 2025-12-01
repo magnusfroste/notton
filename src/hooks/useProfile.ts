@@ -5,6 +5,7 @@ import { toast } from '@/hooks/use-toast';
 
 export interface ProfilePreferences {
   editor_mode: 'rich' | 'markdown';
+  show_line_numbers: boolean;
 }
 
 export interface Profile {
@@ -18,6 +19,7 @@ export interface Profile {
 
 const defaultPreferences: ProfilePreferences = {
   editor_mode: 'rich',
+  show_line_numbers: false,
 };
 
 export function useProfile() {
@@ -116,6 +118,7 @@ export function useProfile() {
   };
 
   const editorMode = profile?.preferences?.editor_mode || 'rich';
+  const showLineNumbers = profile?.preferences?.show_line_numbers ?? false;
 
   return {
     profile,
@@ -124,5 +127,6 @@ export function useProfile() {
     updatePreferences,
     uploadAvatar,
     editorMode,
+    showLineNumbers,
   };
 }
