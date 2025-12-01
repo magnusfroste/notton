@@ -1,15 +1,15 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Settings, Users, Sparkles, CreditCard } from 'lucide-react';
+import { ArrowLeft, Settings, Users, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
 import { useAdminCheck } from '@/hooks/useAdminCheck';
 import { useAuth } from '@/contexts/AuthContext';
+import { AIConfigCard } from '@/components/admin/AIConfigCard';
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -113,47 +113,7 @@ const Admin = () => {
           </Card>
 
           {/* AI Configuration */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5" />
-                AI Configuration
-              </CardTitle>
-              <CardDescription>
-                Configure AI assistant settings
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="aiModel">Default AI Model</Label>
-                <Select defaultValue="gpt-4o-mini">
-                  <SelectTrigger id="aiModel">
-                    <SelectValue placeholder="Select AI model" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="gpt-4o-mini">GPT-4o Mini (Fast)</SelectItem>
-                    <SelectItem value="gpt-4o">GPT-4o (Powerful)</SelectItem>
-                    <SelectItem value="gpt-5-mini">GPT-5 Mini</SelectItem>
-                    <SelectItem value="gpt-5">GPT-5</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Enable AI Features</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Allow users to use AI assistant
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-
-              <Button className="w-full sm:w-auto" disabled>
-                Save AI Settings
-              </Button>
-            </CardContent>
-          </Card>
+          <AIConfigCard />
 
           {/* Plans & Pricing (Future) */}
           <Card className="opacity-60">
