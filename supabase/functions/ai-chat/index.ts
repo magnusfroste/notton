@@ -37,22 +37,23 @@ serve(async (req) => {
     let notesContext: string;
     if (isMultiNote) {
       notesContext = notesList.map((note, i) => 
-        `### Note ${i + 1}: "${note.title}"\n\`\`\`markdown\n${note.content || '(empty)'}\n\`\`\``
-      ).join('\n\n');
+        `### Note ${i + 1}: "${note.title}"\n${note.content || '(empty)'}`
+      ).join('\n\n---\n\n');
     } else {
-      notesContext = `Current note title: "${notesList[0].title}"\nCurrent note content (Markdown):\n\`\`\`markdown\n${notesList[0].content || '(empty note)'}\n\`\`\``;
+      notesContext = `Current note title: "${notesList[0].title}"\nCurrent note content:\n${notesList[0].content || '(empty note)'}`;
     }
 
     // Build system prompt based on action
     let systemPrompt = `You are an AI assistant for a notes application called Tahoe Notes. You help users edit, improve, summarize, and generate content for their notes.
 
-The note content is stored in **Markdown format**. You MUST understand and preserve Markdown syntax.
+The note content is stored in Markdown format. You understand and preserve Markdown syntax.
 
 ${isMultiNote ? `You have access to ${notesList.length} notes:\n\n${notesContext}` : notesContext}
 
 Guidelines:
 - Be concise and helpful
-- **Always return content in Markdown format**
+- Return content in Markdown format directly
+- **CRITICAL: Do NOT wrap your response in code fences like \`\`\`markdown or \`\`\`. Return plain Markdown text only.**
 - Preserve existing Markdown formatting (headers, lists, bold, italic, links, code blocks, etc.)
 - When asked to improve or edit content, return properly formatted Markdown
 - When summarizing, use Markdown formatting (bullet points, headers if appropriate)
@@ -78,7 +79,8 @@ Guidelines:
 - Unique elements worth keeping
 - Redundant or duplicate content to merge
 
-Create a well-organized master document in Markdown that combines the best elements from all notes. Use clear headers and sections.`;
+Create a well-organized master document in Markdown that combines the best elements from all notes. Use clear headers and sections.
+**IMPORTANT: Return ONLY the consolidated content as plain Markdown. Do NOT wrap in code fences.**`;
     } else if (action === 'compare') {
       systemPrompt += `\n\nThe user wants to compare these ${notesList.length} notes. Analyze and highlight:
 - **Similarities**: Common themes, shared content, overlapping ideas
