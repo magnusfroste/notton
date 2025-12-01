@@ -61,20 +61,6 @@ const Dashboard = () => {
     }
   }, [user, authLoading, navigate]);
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd+N or Ctrl+N for new note
-      if ((e.metaKey || e.ctrlKey) && e.key === "n") {
-        e.preventDefault();
-        handleCreateNote();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedFolder]);
-
   // Build folder list with counts
   const folders = useMemo(() => {
     const activeNotes = notes.filter((n) => !n.is_deleted);
@@ -120,6 +106,46 @@ const Dashboard = () => {
 
     return filtered;
   }, [notes, selectedFolder, searchQuery]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip if user is typing in an input/textarea
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
+        return;
+      }
+
+      // Cmd+N or Ctrl+N for new note
+      if ((e.metaKey || e.ctrlKey) && e.key === "n") {
+        e.preventDefault();
+        handleCreateNote();
+        return;
+      }
+
+      // Arrow keys for navigation
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        if (filteredNotes.length === 0) return;
+        
+        const currentIndex = selectedNote 
+          ? filteredNotes.findIndex(n => n.id === selectedNote.id)
+          : -1;
+        
+        let newIndex: number;
+        if (e.key === "ArrowDown") {
+          newIndex = currentIndex < filteredNotes.length - 1 ? currentIndex + 1 : 0;
+        } else {
+          newIndex = currentIndex > 0 ? currentIndex - 1 : filteredNotes.length - 1;
+        }
+        
+        setSelectedNote(filteredNotes[newIndex]);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [filteredNotes, selectedNote]);
 
   // Auto-select first note when filtered list changes
   useEffect(() => {
