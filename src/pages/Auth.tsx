@@ -108,13 +108,13 @@ const Auth = () => {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-            <FileText className="w-6 h-6 text-primary" />
+          <div className="w-12 h-12 rounded-xl bg-[hsl(var(--ai-accent))]/15 flex items-center justify-center">
+            <Sparkles className="w-6 h-6 text-[hsl(var(--ai-accent))]" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-foreground">Tahoe Notes</h1>
+            <h1 className="text-2xl font-semibold text-foreground">Notton AI</h1>
             <p className="text-sm text-muted-foreground flex items-center gap-1">
-              AI-powered notes <Sparkles className="w-3 h-3 text-[hsl(var(--ai-accent))]" />
+              ✨ AI with superpowers
             </p>
           </div>
         </div>

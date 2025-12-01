@@ -262,7 +262,7 @@ export function AIChatPanel({
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto tahoe-scrollbar p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto notton-scrollbar p-4 space-y-4">
           {messages.length === 0 ? (
             <div className="text-center py-8">
               <div className="inline-flex p-3 rounded-2xl bg-[hsl(var(--ai-accent))]/10 mb-3">
