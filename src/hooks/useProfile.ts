@@ -6,6 +6,8 @@ import { toast } from '@/hooks/use-toast';
 export type SortBy = 'updated' | 'created' | 'title';
 export type SortOrder = 'asc' | 'desc';
 export type FontSize = 'small' | 'medium' | 'large' | 'extra-large';
+export type DisplayDensity = 'comfortable' | 'cozy' | 'compact';
+export type ListWidth = 'narrow' | 'default' | 'wide';
 
 export interface ProfilePreferences {
   editor_mode: 'rich' | 'markdown';
@@ -13,6 +15,8 @@ export interface ProfilePreferences {
   sort_by: SortBy;
   sort_order: SortOrder;
   font_size: FontSize;
+  display_density: DisplayDensity;
+  list_width: ListWidth;
 }
 
 export interface Profile {
@@ -30,6 +34,8 @@ const defaultPreferences: ProfilePreferences = {
   sort_by: 'updated',
   sort_order: 'desc',
   font_size: 'medium',
+  display_density: 'comfortable',
+  list_width: 'default',
 };
 
 export function useProfile() {
@@ -132,6 +138,8 @@ export function useProfile() {
   const sortBy = profile?.preferences?.sort_by || 'updated';
   const sortOrder = profile?.preferences?.sort_order || 'desc';
   const fontSize = profile?.preferences?.font_size || 'medium';
+  const displayDensity = profile?.preferences?.display_density || 'comfortable';
+  const listWidth = profile?.preferences?.list_width || 'default';
 
   return {
     profile,
@@ -144,5 +152,7 @@ export function useProfile() {
     sortBy,
     sortOrder,
     fontSize,
+    displayDensity,
+    listWidth,
   };
 }
