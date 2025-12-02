@@ -73,9 +73,13 @@ export type Database = {
           content: string | null
           created_at: string
           deleted_at: string | null
+          encrypted_content: string | null
+          encrypted_title: string | null
+          encryption_iv: string | null
           folder_id: string | null
           id: string
           is_deleted: boolean | null
+          is_encrypted: boolean | null
           title: string
           updated_at: string
           user_id: string
@@ -84,9 +88,13 @@ export type Database = {
           content?: string | null
           created_at?: string
           deleted_at?: string | null
+          encrypted_content?: string | null
+          encrypted_title?: string | null
+          encryption_iv?: string | null
           folder_id?: string | null
           id?: string
           is_deleted?: boolean | null
+          is_encrypted?: boolean | null
           title?: string
           updated_at?: string
           user_id: string
@@ -95,9 +103,13 @@ export type Database = {
           content?: string | null
           created_at?: string
           deleted_at?: string | null
+          encrypted_content?: string | null
+          encrypted_title?: string | null
+          encryption_iv?: string | null
           folder_id?: string | null
           id?: string
           is_deleted?: boolean | null
+          is_encrypted?: boolean | null
           title?: string
           updated_at?: string
           user_id?: string
@@ -117,6 +129,9 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           display_name: string | null
+          encryption_enabled: boolean | null
+          encryption_salt: string | null
+          encryption_version: number | null
           id: string
           preferences: Json | null
           updated_at: string
@@ -125,6 +140,9 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
+          encryption_enabled?: boolean | null
+          encryption_salt?: string | null
+          encryption_version?: number | null
           id: string
           preferences?: Json | null
           updated_at?: string
@@ -133,6 +151,9 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
+          encryption_enabled?: boolean | null
+          encryption_salt?: string | null
+          encryption_version?: number | null
           id?: string
           preferences?: Json | null
           updated_at?: string
