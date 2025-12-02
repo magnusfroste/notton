@@ -10,6 +10,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
 import { PreferencesCard } from '@/components/profile/PreferencesCard';
+import { SecurityCard } from '@/components/profile/SecurityCard';
 import { format } from 'date-fns';
 
 const Profile = () => {
@@ -150,6 +151,9 @@ const Profile = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Security - End-to-End Encryption */}
+        <SecurityCard />
 
         {/* Preferences */}
         <PreferencesCard />
