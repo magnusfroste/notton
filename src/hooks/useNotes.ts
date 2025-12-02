@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEncryption } from "@/contexts/EncryptionContext";
 import { toast } from "sonner";
 import { useOfflineCache } from "./useOfflineCache";
 
@@ -14,6 +15,11 @@ export interface Note {
   created_at: string;
   updated_at: string;
   user_id: string;
+  // Encryption fields
+  encrypted_title?: string | null;
+  encrypted_content?: string | null;
+  encryption_iv?: string | null;
+  is_encrypted?: boolean;
 }
 
 export interface Folder {
@@ -28,6 +34,7 @@ export interface Folder {
 
 export function useNotes() {
   const { user } = useAuth();
+  const { isEncryptionEnabled, isKeyLoaded, encrypt, decrypt } = useEncryption();
   const [notes, setNotes] = useState<Note[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +63,32 @@ export function useNotes() {
     if (!navigator.onLine) {
       const cached = await getCachedNotes();
       if (cached.length > 0) {
-        setNotes(cached.filter((n) => n.user_id === user.id).sort((a, b) => 
+        const userNotes = cached.filter((n) => n.user_id === user.id);
+        // Decrypt if needed and key is loaded
+        const decryptedNotes = await Promise.all(
+          userNotes.map(async (note) => {
+            if (note.is_encrypted && isKeyLoaded) {
+              try {
+                const decryptedTitle = await decrypt({
+                  ciphertext: (note as any).encrypted_title,
+                  iv: (note as any).encryption_iv,
+                  salt: '',
+                });
+                const decryptedContent = await decrypt({
+                  ciphertext: (note as any).encrypted_content,
+                  iv: (note as any).encryption_iv,
+                  salt: '',
+                });
+                return { ...note, title: decryptedTitle, content: decryptedContent };
+              } catch (error) {
+                console.error('Decryption error:', error);
+                return note;
+              }
+            }
+            return note;
+          })
+        );
+        setNotes(decryptedNotes.sort((a, b) => 
           new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
         ));
       }
@@ -80,13 +112,38 @@ export function useNotes() {
       }
       console.error(error);
     } else {
-      setNotes(data || []);
+      // Decrypt notes if encryption is enabled and key is loaded
+      const decryptedNotes = await Promise.all(
+        (data || []).map(async (note) => {
+          if (note.is_encrypted && isKeyLoaded) {
+            try {
+              const decryptedTitle = await decrypt({
+                ciphertext: note.encrypted_title!,
+                iv: note.encryption_iv!,
+                salt: '',
+              });
+              const decryptedContent = await decrypt({
+                ciphertext: note.encrypted_content!,
+                iv: note.encryption_iv!,
+                salt: '',
+              });
+              return { ...note, title: decryptedTitle, content: decryptedContent };
+            } catch (error) {
+              console.error('Failed to decrypt note:', error);
+              return { ...note, title: '[Encrypted]', content: '[Unable to decrypt - key may be incorrect]' };
+            }
+          }
+          return note;
+        })
+      );
+      
+      setNotes(decryptedNotes);
       // Cache the fetched data
       if (data) {
         await cacheNotes(data);
       }
     }
-  }, [user, getCachedNotes, cacheNotes]);
+  }, [user, isKeyLoaded, decrypt, getCachedNotes, cacheNotes]);
 
   const fetchFolders = useCallback(async () => {
     if (!user) return;
@@ -216,14 +273,40 @@ export function useNotes() {
   const createNote = async (folderId?: string | null) => {
     if (!user) return null;
 
+    // Prepare note data
+    let noteData: any = {
+      user_id: user.id,
+      folder_id: folderId || null,
+      title: "Untitled",
+      content: "",
+    };
+
+    // Encrypt if encryption is enabled and key is loaded
+    if (isEncryptionEnabled && isKeyLoaded) {
+      try {
+        const encryptedTitle = await encrypt("Untitled");
+        const encryptedContent = await encrypt("");
+        
+        noteData = {
+          user_id: user.id,
+          folder_id: folderId || null,
+          encrypted_title: encryptedTitle.ciphertext,
+          encrypted_content: encryptedContent.ciphertext,
+          encryption_iv: encryptedTitle.iv,
+          is_encrypted: true,
+          title: "Untitled", // Keep plaintext for optimistic update
+          content: "",
+        };
+      } catch (error) {
+        toast.error("Encryption failed");
+        console.error(error);
+        return null;
+      }
+    }
+
     const { data, error } = await supabase
       .from("notes")
-      .insert({
-        user_id: user.id,
-        folder_id: folderId || null,
-        title: "Untitled",
-        content: "",
-      })
+      .insert(noteData)
       .select()
       .single();
 
@@ -240,14 +323,40 @@ export function useNotes() {
   const importNote = async (title: string, content: string, folderId?: string | null) => {
     if (!user) return null;
 
+    // Prepare note data
+    let noteData: any = {
+      user_id: user.id,
+      folder_id: folderId || null,
+      title,
+      content,
+    };
+
+    // Encrypt if encryption is enabled and key is loaded
+    if (isEncryptionEnabled && isKeyLoaded) {
+      try {
+        const encryptedTitle = await encrypt(title);
+        const encryptedContent = await encrypt(content);
+        
+        noteData = {
+          user_id: user.id,
+          folder_id: folderId || null,
+          encrypted_title: encryptedTitle.ciphertext,
+          encrypted_content: encryptedContent.ciphertext,
+          encryption_iv: encryptedTitle.iv,
+          is_encrypted: true,
+          title, // Keep plaintext for optimistic update
+          content,
+        };
+      } catch (error) {
+        toast.error("Encryption failed");
+        console.error(error);
+        return null;
+      }
+    }
+
     const { data, error } = await supabase
       .from("notes")
-      .insert({
-        user_id: user.id,
-        folder_id: folderId || null,
-        title,
-        content,
-      })
+      .insert(noteData)
       .select()
       .single();
 
@@ -271,6 +380,40 @@ export function useNotes() {
       prev.map((note) => (note.id === id ? { ...note, ...optimisticUpdate } : note))
     );
 
+    // Prepare database updates
+    let dbUpdates: any = { ...updates };
+
+    // Encrypt if encryption is enabled and key is loaded, and we're updating title or content
+    if (isEncryptionEnabled && isKeyLoaded && (updates.title !== undefined || updates.content !== undefined)) {
+      try {
+        const currentNote = notes.find((n) => n.id === id);
+        if (currentNote) {
+          const titleToEncrypt = updates.title !== undefined ? updates.title : currentNote.title;
+          const contentToEncrypt = updates.content !== undefined ? updates.content : currentNote.content;
+
+          const encryptedTitle = await encrypt(titleToEncrypt);
+          const encryptedContent = await encrypt(contentToEncrypt);
+          
+          dbUpdates = {
+            ...dbUpdates,
+            encrypted_title: encryptedTitle.ciphertext,
+            encrypted_content: encryptedContent.ciphertext,
+            encryption_iv: encryptedTitle.iv,
+            is_encrypted: true,
+          };
+          
+          // Remove plaintext from DB updates (keep in optimistic state for UI)
+          delete dbUpdates.title;
+          delete dbUpdates.content;
+        }
+      } catch (error) {
+        console.error('Encryption failed during update:', error);
+        toast.error("Encryption failed");
+        setNotes(previousNotes);
+        return false;
+      }
+    }
+
     // Update local cache
     const updatedNote = notes.find((n) => n.id === id);
     if (updatedNote) {
@@ -283,7 +426,7 @@ export function useNotes() {
         id,
         type: "note",
         action: "update",
-        data: updates,
+        data: dbUpdates,
         timestamp: Date.now(),
       });
       return true;
@@ -292,7 +435,7 @@ export function useNotes() {
     // Make API call
     const { error } = await supabase
       .from("notes")
-      .update(updates)
+      .update(dbUpdates)
       .eq("id", id);
 
     if (error) {
