@@ -64,12 +64,13 @@ import { useProfile } from "@/hooks/useProfile";
 import { format } from "date-fns";
 import { useDebouncedCallback } from "@/hooks/useDebouncedCallback";
 import { toast } from "sonner";
+import { NoteTags } from "@/components/notes/NoteTags";
 
 interface NoteEditorProps {
   note: Note | null;
   folders: Folder[];
   onOpenAIPanel: () => void;
-  onUpdateNote: (id: string, updates: Partial<Pick<Note, "title" | "content" | "folder_id">>) => Promise<void>;
+  onUpdateNote: (id: string, updates: Partial<Pick<Note, "title" | "content" | "folder_id" | "tags">>) => Promise<void>;
   onDeleteNote: () => Promise<void>;
   onRestoreNote: () => Promise<void>;
   onDuplicateNote?: () => void;
@@ -674,11 +675,23 @@ export function NoteEditor({
           />
 
           {/* Metadata */}
-          <div className="flex items-center gap-3 mt-2 mb-6">
+          <div className="flex items-center gap-3 mt-2 mb-4">
             <span className="text-xs text-muted-foreground">
               Last edited {format(new Date(note.updated_at), "MMMM d, yyyy 'at' h:mm a")}
             </span>
           </div>
+
+          {/* Tags Section */}
+          {!isTrashView && (
+            <div className="mb-6">
+              <NoteTags
+                tags={note.tags || []}
+                onTagsChange={(tags) => onUpdateNote(note.id, { tags })}
+                noteTitle={note.title}
+                noteContent={note.content}
+              />
+            </div>
+          )}
 
           {/* Editor - Rich Text or Raw Markdown */}
           {editorMode === 'markdown' ? (

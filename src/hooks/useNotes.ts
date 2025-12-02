@@ -20,6 +20,9 @@ export interface Note {
   encrypted_content?: string | null;
   encryption_iv?: string | null;
   is_encrypted?: boolean;
+  // Tags
+  tags?: string[];
+  ai_tags_generated_at?: string | null;
 }
 
 export interface Folder {

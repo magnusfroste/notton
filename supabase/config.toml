@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.update-ai-secret]
 verify_jwt = false
+
+[functions.generate-tags]
+verify_jwt = false
