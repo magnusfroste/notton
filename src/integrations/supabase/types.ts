@@ -70,6 +70,7 @@ export type Database = {
       }
       notes: {
         Row: {
+          ai_tags_generated_at: string | null
           content: string | null
           created_at: string
           deleted_at: string | null
@@ -80,11 +81,13 @@ export type Database = {
           id: string
           is_deleted: boolean | null
           is_encrypted: boolean | null
+          tags: string[] | null
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          ai_tags_generated_at?: string | null
           content?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -95,11 +98,13 @@ export type Database = {
           id?: string
           is_deleted?: boolean | null
           is_encrypted?: boolean | null
+          tags?: string[] | null
           title?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          ai_tags_generated_at?: string | null
           content?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -110,6 +115,7 @@ export type Database = {
           id?: string
           is_deleted?: boolean | null
           is_encrypted?: boolean | null
+          tags?: string[] | null
           title?: string
           updated_at?: string
           user_id?: string

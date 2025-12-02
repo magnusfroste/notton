@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Search, Plus, SortDesc, SortAsc, Upload, Copy, Trash2, FolderInput, Folder as FolderIcon, CheckSquare, Sparkles, Calendar, Clock, Type, X } from "lucide-react";
+import { Search, Plus, SortDesc, SortAsc, Upload, Copy, Trash2, FolderInput, Folder as FolderIcon, CheckSquare, Sparkles, Calendar, Clock, Type, X, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Note, Folder } from "@/hooks/useNotes";
@@ -166,15 +166,35 @@ function DraggableNoteItem({
               {note.title || "Untitled"}
             </h3>
             {density.showPreview ? (
-              <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-xs text-muted-foreground">
-                  {format(new Date(note.updated_at), "MMM d")}
-                </span>
-                <span className="text-xs text-muted-foreground/60 truncate flex-1">
-                  {note.content?.slice(0, 50) || "No content"}
-                  {note.content && note.content.length > 50 ? "..." : ""}
-                </span>
-              </div>
+              <>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-xs text-muted-foreground">
+                    {format(new Date(note.updated_at), "MMM d")}
+                  </span>
+                  <span className="text-xs text-muted-foreground/60 truncate flex-1">
+                    {note.content?.slice(0, 50) || "No content"}
+                    {note.content && note.content.length > 50 ? "..." : ""}
+                  </span>
+                </div>
+                {note.tags && note.tags.length > 0 && (
+                  <div className="flex items-center gap-1 mt-1 flex-wrap">
+                    {note.tags.slice(0, 3).map((tag) => (
+                      <span
+                        key={tag}
+                        className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+                      >
+                        <Tag className="h-2.5 w-2.5" />
+                        {tag}
+                      </span>
+                    ))}
+                    {note.tags.length > 3 && (
+                      <span className="text-[10px] text-muted-foreground/60">
+                        +{note.tags.length - 3}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </>
             ) : (
               <span className="text-[10px] text-muted-foreground">
                 {format(new Date(note.updated_at), "MMM d")}
