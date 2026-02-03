@@ -159,6 +159,50 @@ supabase/
 
 ## Deployment
 
+### Docker Deployment
+
+#### Local Testing with Docker Compose
+
+```bash
+# Set environment variables
+export VITE_SUPABASE_URL=your_supabase_url
+export VITE_SUPABASE_PUBLISHABLE_KEY=your_anon_key
+
+# Build and run with Docker Compose
+docker-compose up --build
+
+# Access at http://localhost:3000
+```
+
+#### Production Deployment
+
+**Option 1: Easypanel (Recommended)**
+
+1. Create a new App in Easypanel
+2. Connect to this GitHub repo
+3. Build method: Dockerfile
+4. Set environment variables:
+   - `VITE_SUPABASE_URL`: Your Supabase project URL
+   - `VITE_SUPABASE_PUBLISHABLE_KEY`: Your Supabase anon key
+5. Port: 80
+6. Deploy
+
+**Option 2: Docker Image**
+
+```bash
+# Build the image
+docker build -t notton .
+
+# Run the container
+docker run -d \
+  -p 3000:80 \
+  -e VITE_SUPABASE_URL=your_supabase_url \
+  -e VITE_SUPABASE_PUBLISHABLE_KEY=your_anon_key \
+  notton
+```
+
+**Option 3: Lovable Deployment**
+
 The app is deployed via [Lovable](https://lovable.dev) with a custom domain at [notton.app](https://notton.app).
 
 To deploy your own instance:
