@@ -187,6 +187,11 @@ docker-compose up --build
 5. Port: 80
 6. Deploy
 
+For detailed Easypanel deployment instructions, run:
+```bash
+./scripts/deploy-easypanel.sh
+```
+
 **Option 2: Docker Image**
 
 ```bash
@@ -209,6 +214,22 @@ To deploy your own instance:
 1. Push to the connected GitHub repository
 2. Lovable auto-deploys on push
 3. Or use `npm run build` and deploy the `dist/` folder to any static host
+
+### Scripts
+
+The project includes helpful scripts for deployment and configuration:
+
+**configure-secrets.sh**
+```bash
+# Configure AI API keys (OpenAI, xAI)
+./scripts/configure-secrets.sh
+```
+
+**deploy-easypanel.sh**
+```bash
+# View Easypanel deployment guide
+./scripts/deploy-easypanel.sh
+```
 
 ---
 
