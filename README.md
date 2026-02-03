@@ -62,8 +62,9 @@ Find anything instantly with semantic search across all your notes.
 ## Getting Started
 
 ### Prerequisites
+
 - Node.js 18+ (recommend using [nvm](https://github.com/nvm-sh/nvm))
-- A Supabase project
+- Supabase account (for self-hosting)
 
 ### Local Development
 
@@ -82,6 +83,40 @@ cp .env.example .env
 # Start development server
 npm run dev
 ```
+
+### Self-Hosted Setup
+
+If you want to self-host this application, you'll need:
+
+1. **Create a Supabase Project**
+   - Go to [supabase.com](https://supabase.com)
+   - Create a new project (free tier available - 2 projects!)
+   - Get your project URL and anon key
+
+2. **Set Environment Variables**
+   ```bash
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_PUBLISHABLE_KEY=your_anon_key
+   ```
+
+3. **Run Database Migrations**
+   ```bash
+   # Navigate to your project directory
+   cd /path/to/notton
+
+   # Run all migrations
+   npx supabase db push
+   ```
+
+   Or manually run migrations:
+   ```bash
+   npx supabase db reset
+   ```
+
+4. **Run the Application**
+   ```bash
+   npm run dev
+   ```
 
 ### Environment Variables
 
