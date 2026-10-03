@@ -58,7 +58,7 @@ interface FolderSidebarProps {
   onSelectFolder: (id: string) => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
-  onCreateFolder: (name: string, icon?: string) => Promise<any>;
+  onCreateFolder: (name: string, icon?: string) => Promise<unknown>;
   onRenameFolder: (id: string, name: string) => Promise<boolean>;
   onDeleteFolder: (id: string) => Promise<boolean>;
   onSignOut: () => Promise<void>;

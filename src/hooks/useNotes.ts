@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEncryption } from "@/contexts/EncryptionContext";
 import { toast } from "sonner";
 import { useOfflineCache } from "./useOfflineCache";
+import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
 export interface Note {
   id: string;
@@ -73,13 +74,13 @@ export function useNotes() {
             if (note.is_encrypted && isKeyLoaded) {
               try {
                 const decryptedTitle = await decrypt({
-                  ciphertext: (note as any).encrypted_title,
-                  iv: (note as any).encryption_iv,
+                  ciphertext: note.encrypted_title,
+                  iv: note.encryption_iv,
                   salt: '',
                 });
                 const decryptedContent = await decrypt({
-                  ciphertext: (note as any).encrypted_content,
-                  iv: (note as any).encryption_iv,
+                  ciphertext: note.encrypted_content,
+                  iv: note.encryption_iv,
                   salt: '',
                 });
                 return { ...note, title: decryptedTitle, content: decryptedContent };
@@ -277,7 +278,7 @@ export function useNotes() {
     if (!user) return null;
 
     // Prepare note data
-    let noteData: any = {
+    let noteData: TablesInsert<"notes"> = {
       user_id: user.id,
       folder_id: folderId || null,
       title: "Untitled",
@@ -327,7 +328,7 @@ export function useNotes() {
     if (!user) return null;
 
     // Prepare note data
-    let noteData: any = {
+    let noteData: TablesInsert<"notes"> = {
       user_id: user.id,
       folder_id: folderId || null,
       title,
@@ -384,7 +385,7 @@ export function useNotes() {
     );
 
     // Prepare database updates
-    let dbUpdates: any = { ...updates };
+    let dbUpdates: TablesUpdate<"notes"> = { ...updates };
 
     // Encrypt if encryption is enabled and key is loaded, and we're updating title or content
     if (isEncryptionEnabled && isKeyLoaded && (updates.title !== undefined || updates.content !== undefined)) {

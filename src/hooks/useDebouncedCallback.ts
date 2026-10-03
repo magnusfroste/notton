@@ -1,17 +1,17 @@
 import { useRef, useCallback, useEffect } from "react";
 
-export interface DebouncedFunction<T extends (...args: any[]) => any> {
-  (...args: Parameters<T>): void;
+export interface DebouncedFunction<Args extends unknown[]> {
+  (...args: Args): void;
   cancel: () => void;
   flush: () => void;
 }
 
-export function useDebouncedCallback<T extends (...args: any[]) => any>(
-  callback: T,
+export function useDebouncedCallback<Args extends unknown[]>(
+  callback: (...args: Args) => void,
   delay: number
-): DebouncedFunction<T> {
+): DebouncedFunction<Args> {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const pendingArgsRef = useRef<Parameters<T> | null>(null);
+  const pendingArgsRef = useRef<Args | null>(null);
   const callbackRef = useRef(callback);
 
   // Keep callback ref updated to avoid stale closures
@@ -37,7 +37,7 @@ export function useDebouncedCallback<T extends (...args: any[]) => any>(
   }, []);
 
   const debouncedFn = useCallback(
-    (...args: Parameters<T>) => {
+    (...args: Args) => {
       pendingArgsRef.current = args;
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -49,7 +49,7 @@ export function useDebouncedCallback<T extends (...args: any[]) => any>(
       }, delay);
     },
     [delay]
-  ) as DebouncedFunction<T>;
+  ) as DebouncedFunction<Args>;
 
   debouncedFn.cancel = cancel;
   debouncedFn.flush = flush;
