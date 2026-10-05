@@ -1,0 +1,12 @@
+# Notton AI
+
+> AI-powered, cloud-based note-taking app inspired by Apple Notes – organize, search and chat with your content.
+
+Notton is a notes app for anyone who wants a clean, distraction-free place to write, with an AI assistant built in. Write in Markdown, organize notes in folders, and use the AI side panel to improve writing, summarize, extract tasks, generate ideas, consolidate or compare notes, and search the web. Semantic search finds anything across all your notes.
+
+It runs as a Progressive Web App on desktop, tablet and mobile.
+
+## Key links
+
+- [Notton AI](https://notton.app/)
+- [Sign in / sign up](https://notton.app/auth)
